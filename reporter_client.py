@@ -4,11 +4,10 @@ import os
 import subprocess
 from datetime import datetime
 import boto3
-from datetime import datetime
 import sys
 
 def exec_cmd(args: list):
-    # Exec input comand
+    # Exec input command
     out = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     stdout, stderr = out.communicate()
 
@@ -115,14 +114,17 @@ def define_s3_target_path(prefix):
 
 
 if __name__ == "__main__":
+    # Get info about backups
     container_name = sys.argv[1]
     result_walg_cmd = exec_cmd(["docker", "exec", "-it", container_name, "wal-g", "wal-show", "--detailed-json" ])
     resulting_dict_for_json = create_resulting_dict(result_walg_cmd)
     write_dict_to_file(resulting_dict_for_json)
-
+    
+    # Define secret and vasrs for AWS
     result_env_cmd = exec_cmd(["docker", "exec", "-it", container_name, "env" ])
     define_vars_for_s3_client(result_env_cmd)
-
+    
+    # Export file to the bucket 
     bucket_name,prefix_name = split_bucket_and_prefix(WALG_S3_PREFIX)
     s3_target_path = define_s3_target_path(prefix_name)
     print(s3_target_path)
