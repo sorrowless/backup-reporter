@@ -7,7 +7,7 @@ preview:
     - apk update && apk add bash && apk add --update coreutils
     - pip install apprise && pip install awscli
     - aws s3 ls s3://embily-staging-core-backup/db_backups
-    - aws s3 ls s3://${WALG_S3_PREFIX}/validate_metadata/
+    - aws s3 ls ${WALG_S3_PREFIX}/validate_metadata/
     # - echo $REMOTE_FILE
     # - DIFF=$(( ($(date -d $(date +%Y%m%d) +%s) - $(date -d $REMOTE_FILE +%s) )/(60*60) ))
     # - echo $DIFF
