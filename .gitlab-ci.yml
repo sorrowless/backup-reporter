@@ -1,0 +1,7 @@
+stages:
+  - preview
+
+preview:
+  stage: preview
+  script:
+    - echo "Test"
