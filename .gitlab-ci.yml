@@ -6,4 +6,4 @@ preview:
   script:
     - apk update && apk add bash && apk add --update coreutils
     - pip install apprise
-
+  when: manual  
