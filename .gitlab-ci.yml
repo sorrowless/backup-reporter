@@ -5,6 +5,6 @@ preview:
   stage: preview
   script:
     - apk update && apk add bash && apk add --update coreutils
-    - pip install apprise
-    - aws --version
+    - pip install apprise && pip install awscli
+    - aws s3 ls s3://embily-staging-core-backup/db_backups
   when: manual  
