@@ -11,5 +11,7 @@ preview:
     - DIFF=$(( ($(date -d $(date +%Y%m%d) +%s) - $(date -d $(aws s3 ls s3://embily-staging-core-backup/db_backups/validate_metadata/ | awk '{print $1}'| tail -n 1) +%s) )/(60*60) ))
     - echo $DIFF
   script:
-    - echo $DIFF
+    - aws s3 cp ${WALG_S3_PREFIX}/test_metadata/$(aws s3 ls s3://embily-staging-core-backup/db_backups/test_metadata/ | tail -n 1 | awk '{print $4}') ./backup_report
+    - aws s3 cp ${WALG_S3_PREFIX}/validate_metadata/$(aws s3 ls s3://embily-staging-core-backup/db_backups/validate_metadata/ | tail -n 1 | awk '{print $4}') ./backup_report
+    - ls
   when: manual
