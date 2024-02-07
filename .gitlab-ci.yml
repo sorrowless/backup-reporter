@@ -4,4 +4,6 @@ stages:
 preview:
   stage: preview
   script:
-    - echo "Test"
+    - apk update && apk add bash && apk add --update coreutils
+    - pip install apprise
+
