@@ -6,4 +6,5 @@ preview:
   script:
     - apk update && apk add bash && apk add --update coreutils
     - pip install apprise
+    - aws --version
   when: manual  
