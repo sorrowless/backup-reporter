@@ -3,12 +3,13 @@ stages:
 
 preview:
   stage: preview
-  script:
+  before_script:
     - apk update && apk add bash && apk add --update coreutils
     - pip install apprise && pip install awscli
     - aws s3 ls s3://embily-staging-core-backup/db_backups
     - aws s3 ls ${WALG_S3_PREFIX}/validate_metadata/
-    # - echo $REMOTE_FILE
-    # - DIFF=$(( ($(date -d $(date +%Y%m%d) +%s) - $(date -d $REMOTE_FILE +%s) )/(60*60) ))
-    # - echo $DIFF
+    - DIFF=$(( ($(date -d $(date +%Y%m%d) +%s) - $(date -d $(aws s3 ls s3://embily-staging-core-backup/db_backups/validate_metadata/ | awk '{print $1}'| tail -n 1) +%s) )/(60*60) ))
+    - echo $DIFF
+  script:
+    - echo $DIFF
   when: manual
