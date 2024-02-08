@@ -5,7 +5,7 @@ preview:
   stage: preview
   before_script:
     - apk update && apk add bash && apk add --update coreutils
-    - pip install apprise && pip install awscli
+    - pip install apprise && pip install awscli && pip install oauth2client && pip install gspread
     - aws s3 ls s3://embily-staging-core-backup/db_backups
     - aws s3 ls ${WALG_S3_PREFIX}/validate_metadata/
     - DIFF=$(( ($(date -d $(date +%Y%m%d) +%s) - $(date -d $(aws s3 ls s3://embily-staging-core-backup/db_backups/validate_metadata/ | awk '{print $1}'| tail -n 1) +%s) )/(60*60) ))
