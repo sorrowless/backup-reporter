@@ -32,6 +32,7 @@ preview:
         # aws s3 cp ${WALG_S3_PREFIX}/test_metadata/$(aws s3 ls ${WALG_S3_PREFIX}/test_metadata/ | tail -n 1 | awk '{print $4}') ./backup_report.json
         # ./sheets.py
       else
+        echo "No validation"
         # aws s3 cp ${WALG_S3_PREFIX}/test_metadata/$(aws s3 ls ${WALG_S3_PREFIX}/test_metadata/ | tail -n 1 | awk '{print $4}') ./backup_report.json
         # aws s3 cp ${WALG_S3_PREFIX}/validate_metadata/$(aws s3 ls s${WALG_S3_PREFIX}/db_backups/validate_metadata/ | tail -n 1 | awk '{print $4}') ./validate_report.json
         # echo "No Validation"
