@@ -4,17 +4,30 @@ stages:
 preview:
   stage: preview
   before_script:
-    - apk update && apk add bash && apk add --update coreutils
-    - pip install apprise && pip install awscli && pip install oauth2client && pip install gspread
-    - aws s3 ls s3://embily-staging-core-backup/db_backups
-    - aws s3 ls ${WALG_S3_PREFIX}/validate_metadata/
-    - CURRENT_DATE=$(date -d $(date +%Y%m%d) +%s)
-    - LAST_DATE_OF_VALIDATION=$(date -d $(aws s3 ls s3://embily-staging-core-backup/db_backups/validate_metadata/ | awk '{print $1}'| tail -n 1) +%s)
-    - DIFF_TIME=$(( $CURRENT_DATE - $LAST_DATE_OF_VALIDATION ))
-    - DIFF_DAYS=$(( $DIFF_TIME/(60*60*24) ))
-    - echo $DIFF_DAYS
+    - |
+      echo "Install dependencies"
+      apk update && apk add bash && apk add --update coreutils
+      pip install apprise && pip install awscli && pip install oauth2client && pip install gspread
+    - |
+      aws s3 ls ${WALG_S3_PREFIX}  #Check bucket is present
+      VALIDATION_DIRECTORY_IS_PRESENT=$(aws s3 ls ${WALG_S3_PREFIX}/validate_metadata/) #Check validation is present
+      if [[ -z "$var" ]]; then
+        export DIFF_DAYS=1000
+      else 
+        CURRENT_DATE=$(date -d $(date +%Y%m%d) +%s)
+        LAST_DATE_OF_VALIDATION=$(date -d $(aws s3 ls s3://embily-staging-core-backup/db_backups/validate_metadata/ | awk '{print $1}'| tail -n 1) +%s)
+        DIFF_TIME=$(( $CURRENT_DATE - $LAST_DATE_OF_VALIDATION ))
+        export DIFF_DAYS=$(( $DIFF_TIME/(60*60*24) ))
+        echo $DIFF_DAYS
   script:
-    - echo $DIFF_DAYS
+    - >
+      if [[ $DIFF_DAYS -gt $INTERVAL_DAYS ]]; then 
+        echo 'Start validation'
+
+      else
+         apprise  -t "update sheets"
+      fi
+
     # - aws s3 cp ${WALG_S3_PREFIX}/test_metadata/$(aws s3 ls s3://embily-staging-core-backup/db_backups/test_metadata/ | tail -n 1 | awk '{print $4}') ./backup_report.json
     # - aws s3 cp ${WALG_S3_PREFIX}/validate_metadata/$(aws s3 ls s3://embily-staging-core-backup/db_backups/validate_metadata/ | tail -n 1 | awk '{print $4}') ./validate_report.json
     # - echo $credantionals_json > credantionals.json
