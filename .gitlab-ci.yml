@@ -35,10 +35,13 @@ preview:
     - >
       if [ $CI_JOB_STATUS == 'success' ]; then
         echo 'This will only run on success'
-          # - echo $credantionals_json > credantionals.json
+        
         ./sheets.py
       else
-         echo 'apprise  -t "Achtung!Alarm!Внимание!Failed checkout POSTGESQL files" -b "$CI_JOB_URL" "${APPRISE}"'
+        echo 'apprise  -t "Achtung!Alarm!Внимание!Failed checkout POSTGESQL files" -b "$CI_JOB_URL" "${APPRISE}"'
+        printf '{"tested_backup": "Failed", "last_validation": "%s"}' $(date '+%Y-%m-%dT%H:%M:%S')' > ./validate_report.json
+        aws s3 cp validate_report.json ${WALG_S3_PREFIX}/validate_metadata/
+         ./sheets.py
       fi
 
 
