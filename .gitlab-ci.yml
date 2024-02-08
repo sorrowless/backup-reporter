@@ -27,7 +27,7 @@ preview:
       if [[ $DIFF_DAYS -gt $INTERVAL_DAYS ]]; then 
         echo 'Start validation'
         export VALIDATED_BACKUP="some_validated_backup"
-        # printf '{"tested_backup": "%s", "last_validation": "%s"}' $VALIDATED_BACKUP $(date '+%Y-%m-%dT%H:%M:%S')' > ./validate_report.json
+        # printf '{"tested_backup": "%s", "last_validation": "%s"}' $VALIDATED_BACKUP $(date '+%Y-%m-%dT%H:%M:%S') > ./validate_report.json
         aws s3 cp validate_report.json ${WALG_S3_PREFIX}/validate_metadata/
         aws s3 cp ${WALG_S3_PREFIX}/test_metadata/$(aws s3 ls ${WALG_S3_PREFIX}/test_metadata/ | tail -n 1 | awk '{print $4}') ./backup_report.json
         ./sheets.py
@@ -36,17 +36,17 @@ preview:
         # aws s3 cp ${WALG_S3_PREFIX}/validate_metadata/$(aws s3 ls s${WALG_S3_PREFIX}/db_backups/validate_metadata/ | tail -n 1 | awk '{print $4}') ./validate_report.json
         # echo "No Validation"
       fi
-  # after_script:
-  #   - >
-  #     if [ $CI_JOB_STATUS == 'success' ]; then
-  #       echo 'This will only run on success'
-  #     else
-  #       echo 'apprise  -t "Achtung!Alarm!Внимание!Failed checkout POSTGESQL files" -b "$CI_JOB_URL" "${APPRISE}"'
-  #       printf '{"tested_backup": "Failed", "last_validation": "%s"}' $(date '+%Y-%m-%dT%H:%M:%S')' > ./validate_report.json
-  #       aws s3 cp validate_report.json ${WALG_S3_PREFIX}/validate_metadata/
-  #       aws s3 cp ${WALG_S3_PREFIX}/test_metadata/$(aws s3 ls ${WALG_S3_PREFIX}/test_metadata/ | tail -n 1 | awk '{print $4}') ./backup_report.json
-  #       ./sheets.py
-  #     fi
+  after_script:
+    - >
+      if [ $CI_JOB_STATUS == 'success' ]; then
+        echo 'This will only run on success'
+      else
+        echo 'apprise  -t "Achtung!Alarm!Внимание!Failed checkout POSTGESQL files" -b "$CI_JOB_URL" "${APPRISE}"'
+        printf '{"tested_backup": "Failed", "last_validation": "%s"}' $(date '+%Y-%m-%dT%H:%M:%S') > ./validate_report.json
+        aws s3 cp validate_report.json ${WALG_S3_PREFIX}/validate_metadata/
+        aws s3 cp ${WALG_S3_PREFIX}/test_metadata/$(aws s3 ls ${WALG_S3_PREFIX}/test_metadata/ | tail -n 1 | awk '{print $4}') ./backup_report.json
+        ./sheets.py
+      fi
 
 
 
