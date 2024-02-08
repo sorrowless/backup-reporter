@@ -10,13 +10,14 @@ preview:
       pip install apprise && pip install awscli && pip install oauth2client && pip install gspread
     - |
       aws s3 ls ${WALG_S3_PREFIX}  #Check bucket is present
-      VALIDATION_DIRECTORY_IS_PRESENT=$(aws s3 ls ${WALG_S3_PREFIX}/validate_metadata/) #Check validation is present
-      if [[ -z $VALIDATION_DIRECTORY_IS_PRESENT ]]; then
+      export LAST_VALIDATION=$( aws s3 ls s3://embily-staging-core-backup/db_backups/validate_metadata/ | tail -n 1 ) || true #Check validation is present
+      if [[ -z $LAST_VALIDATION ]]; then
         export DIFF_DAYS=1000
       else 
         CURRENT_DATE=$(date -d $(date +%Y%m%d) +%s)
-        LAST_DATE_OF_VALIDATION=$(date -d $(aws s3 ls s3://embily-staging-core-backup/db_backups/validate_metadata/ | awk '{print $1}'| tail -n 1) +%s)
+        LAST_DATE_OF_VALIDATION=$(date -d $(echo $LAST_VALIDATION | awk '{print $1}') +%s)
         DIFF_TIME=$(( $CURRENT_DATE - $LAST_DATE_OF_VALIDATION ))
+        export LAST_VALIDATION_FILE=$(echo $LAST_VALIDATION | awk '{print $4}')
         export DIFF_DAYS=$(( $DIFF_TIME/(60*60*24) ))
         echo $DIFF_DAYS
       fi
@@ -24,9 +25,9 @@ preview:
     - >
       if [[ $DIFF_DAYS -gt $INTERVAL_DAYS ]]; then 
         echo 'Start validation'
-
       else
-         apprise  -t "update sheets"
+        aws s3 cp ${WALG_S3_PREFIX}/validate_metadata/$(aws s3 ls s3://embily-staging-core-backup/db_backups/validate_metadata/ | tail -n 1 | awk '{print $4}') ./validate_report.json
+        echo "No Validation"
       fi
 
     # - aws s3 cp ${WALG_S3_PREFIX}/test_metadata/$(aws s3 ls s3://embily-staging-core-backup/db_backups/test_metadata/ | tail -n 1 | awk '{print $4}') ./backup_report.json
@@ -34,3 +35,6 @@ preview:
     # - echo $credantionals_json > credantionals.json
     # - ls
     # - ./sheets.py
+
+
+   # - aws s3 cp ${WALG_S3_PREFIX}/test_metadata/$(aws s3 ls s3://embily-staging-core-backup/db_backups/test_metadata/ | tail -n 1 | awk '{print $4}') ./backup_report.json
