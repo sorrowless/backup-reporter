@@ -15,4 +15,4 @@ preview:
     - aws s3 cp ${WALG_S3_PREFIX}/validate_metadata/$(aws s3 ls s3://embily-staging-core-backup/db_backups/validate_metadata/ | tail -n 1 | awk '{print $4}') ./validate_report.json
     - echo $credantionals_json > credantionals.json
     - ls
-
+    - ./sheets.py
