@@ -41,7 +41,6 @@ target_cell = sheet.find(data_reports["project_name"], in_column=1)
 print(target_cell)
 
 if target_cell != None:
-    print("No")
     sheet.update(("A" + str(target_cell.row)), [full_update_data])
 else:
     sheet.append_row(full_update_data)
