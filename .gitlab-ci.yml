@@ -19,6 +19,7 @@ preview:
         DIFF_TIME=$(( $CURRENT_DATE - $LAST_DATE_OF_VALIDATION ))
         export DIFF_DAYS=$(( $DIFF_TIME/(60*60*24) ))
         echo $DIFF_DAYS
+      fi
   script:
     - >
       if [[ $DIFF_DAYS -gt $INTERVAL_DAYS ]]; then 
