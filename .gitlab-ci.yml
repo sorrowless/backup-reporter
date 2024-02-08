@@ -22,6 +22,7 @@ preview:
         echo $DIFF_DAYS
       fi
   script:
+    - echo $credantionals_json > credantionals.json
     - >
       if [[ $DIFF_DAYS -gt $INTERVAL_DAYS ]]; then 
         echo 'Start validation'
@@ -34,6 +35,7 @@ preview:
     - >
       if [ $CI_JOB_STATUS == 'success' ]; then
         echo 'This will only run on success'
+          # - echo $credantionals_json > credantionals.json
         ./sheets.py
       else
          echo 'apprise  -t "Achtung!Alarm!Внимание!Failed checkout POSTGESQL files" -b "$CI_JOB_URL" "${APPRISE}"'
