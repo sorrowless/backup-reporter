@@ -11,7 +11,7 @@ preview:
     - |
       aws s3 ls ${WALG_S3_PREFIX}  #Check bucket is present
       VALIDATION_DIRECTORY_IS_PRESENT=$(aws s3 ls ${WALG_S3_PREFIX}/validate_metadata/) #Check validation is present
-      if [[ -z "$var" ]]; then
+      if [[ -z $VALIDATION_DIRECTORY_IS_PRESENT ]]; then
         export DIFF_DAYS=1000
       else 
         CURRENT_DATE=$(date -d $(date +%Y%m%d) +%s)
