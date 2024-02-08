@@ -37,7 +37,7 @@ with open(json_data_validate_file, 'r') as json_file:
 
 full_update_data = [project_name, datetime.now().strftime("%d_%m_%Y-%H_%M_%S")] + list(data_reports.values()) + list(data_validation.values())
 
-target_cell = sheet.find(data_reports["project_name"], in_column=1)
+target_cell = sheet.find(project_name, in_column=1)
 print(target_cell)
 
 if target_cell != None:
