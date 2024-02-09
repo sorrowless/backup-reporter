@@ -54,7 +54,7 @@ preview:
         echo 'This will only run on success'
       else
         echo 'apprise  -t "Achtung!Alarm!Внимание!Failed checkout POSTGESQL files" -b "$CI_JOB_URL" "${APPRISE}"'
-        echo $LAST_VALIDATION_FILE
+        aws s3 cp ${WALG_S3_PREFIX}/validate_metadata/$( aws s3 ls s3://embily-staging-core-backup/db_backups/validate_metadata/ | tail -n 1 | awk '{print $4}') ./old_validation.json
         aws s3 cp ${WALG_S3_PREFIX}/validate_metadata/$LAST_VALIDATION_FILE ./old_validation.json
         OLD_VALIDATED_BACKUP=$(cat old_validation.json | awk -F ',' '{print $1}' | awk -F ':' '{print $2}' | sed -e 's/^["'\'']\|["'\'']*$//g')
         printf '{"tested_backup": "%s", "last_validation": "%s", "result_of_validation": "SUCCESS"}' $OLD_VALIDATED_BACKUP $(date '+%Y-%m-%dT%H:%M:%S') > ./validate_report.json
