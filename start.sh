@@ -52,5 +52,5 @@ then
   echo "Backup is older than $DIFF !!! Please, check production of backups!"
   exit 1
 fi
-export VALIDATED_BACKUP=$(docker exec -i postgres wal-g backup-list | tail -n 1 | awk '{print $1}')
+echo $(docker exec -i postgres wal-g backup-list | tail -n 1 | awk '{print $1}') > VALIDATED_BACKUP
 docker-compose down
