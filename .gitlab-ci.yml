@@ -28,13 +28,13 @@ preview:
       if [[ $DIFF_DAYS -gt $INTERVAL_DAYS ]] || [[ $LAST_VALIDATION_RESULT == 'FAILED' ]]; then 
         echo 'Start validation'
         export VALIDATED_BACKUP="some_validated_backup"
-        printf '{"tested_backup": "%s", "last_validation": "%s"}' $VALIDATED_BACKUP $(date '+%Y-%m-%dT%H:%M:%S') > ./validate_report.json
+        printf '{"tested_backup": "%s", "last_validation": "%s", "result_of_validation": "SUCCESS"}' $VALIDATED_BACKUP $(date '+%Y-%m-%dT%H:%M:%S') > ./validate_report.json
         aws s3 cp validate_report.json ${WALG_S3_PREFIX}/validate_metadata/$(date '+%Y_%m_%d-%H_%M_%S')-SUCCESS
         aws s3 cp ${WALG_S3_PREFIX}/test_metadata/$(aws s3 ls ${WALG_S3_PREFIX}/test_metadata/ | tail -n 1 | awk '{print $4}') ./backup_report.json
         for SHEET in ${SHEETS//,/ }; do
           IFS=":" read -r SPREADSHEET_NAME SHEET_NAME port <<< "$SHEET"
           echo "Update sheets"
-          ./sheets.py
+          ./update_sheets.py
         done
       else
         echo "No Validation"
@@ -44,7 +44,7 @@ preview:
         for SHEET in ${SHEETS//,/ }; do
           IFS=":" read -r SPREADSHEET_NAME SHEET_NAME port <<< "$SHEET"
           echo "Update sheets"
-          ./sheets.py
+          ./update_sheets.py
         done
       fi
   after_script:
@@ -53,12 +53,14 @@ preview:
         echo 'This will only run on success'
       else
         echo 'apprise  -t "Achtung!Alarm!Внимание!Failed checkout POSTGESQL files" -b "$CI_JOB_URL" "${APPRISE}"'
-        printf '{"tested_backup": "Failed", "last_validation": "%s"}' $(date '+%Y-%m-%dT%H:%M:%S') > ./validate_report.json
+        aws s3 cp ${WALG_S3_PREFIX}/validate_metadata/$LAST_VALIDATION_FILE ./old_validation.json
+        OLD_VALIDATED_BACKUP=$(cat old_validation.json | awk -F ',' '{print $1}' | awk -F ':' '{print $2}' | sed -e 's/^["'\'']\|["'\'']*$//g')
+        printf '{"tested_backup": "%s", "last_validation": "%s", "result_of_validation": "SUCCESS"}' $OLD_VALIDATED_BACKUP $(date '+%Y-%m-%dT%H:%M:%S') > ./validate_report.json
         aws s3 cp validate_report.json ${WALG_S3_PREFIX}/validate_metadata/$(date '+%Y_%m_%d-%H_%M_%S')-FAILED
         aws s3 cp ${WALG_S3_PREFIX}/test_metadata/$(aws s3 ls ${WALG_S3_PREFIX}/test_metadata/ | tail -n 1 | awk '{print $4}') ./backup_report.json
         for SHEET in ${SHEETS//,/ }; do
           IFS=":" read -r SPREADSHEET_NAME SHEET_NAME port <<< "$SHEET"
-          ./sheets.py
+          ./update_sheets.py
         done
       fi
 
@@ -68,7 +70,7 @@ preview:
     # - aws s3 cp ${WALG_S3_PREFIX}/validate_metadata/$(aws s3 ls s3://embily-staging-core-backup/db_backups/validate_metadata/ | tail -n 1 | awk '{print $4}') ./validate_report.json
     # - echo $credantionals_json > credantionals.json
     # - ls
-    # - ./sheets.py
+    # - ./update_sheets.py
 
 
    # - aws s3 cp ${WALG_S3_PREFIX}/test_metadata/$(aws s3 ls s3://embily-staging-core-backup/db_backups/test_metadata/ | tail -n 1 | awk '{print $4}') ./backup_report.json
