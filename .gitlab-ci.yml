@@ -25,7 +25,7 @@ preview:
   script:
     - echo $credantionals_json > credantionals.json
     - >
-      if [[ $DIFF_DAYS -gt $INTERVAL_DAYS ]] || [[ $LAST_VALIDATION_RESULT == 'FAILED' ]]; then 
+      if [[ $DIFF_DAYS -ge $INTERVAL_DAYS ]] || [[ $LAST_VALIDATION_RESULT == 'FAILED' ]]; then 
         echo 'Start validation'
         echo "$DOCKER_REGISTRY_PASSWORD" | docker login -u "$DOCKER_REGISTRY_LOGIN" --password-stdin "$DOCKER_REGISTRY_URL"
         docker-compose up -d
@@ -44,7 +44,6 @@ preview:
         aws s3 cp ${WALG_S3_PREFIX}/test_metadata/$(aws s3 ls ${WALG_S3_PREFIX}/test_metadata/ | tail -n 1 | awk '{print $4}') ./backup_report.json
         aws s3 cp ${WALG_S3_PREFIX}/validate_metadata/$LAST_VALIDATION_FILE ./validate_report.json
         echo "No Validation"
-        exit 1
         for SHEET in ${SHEETS//,/ }; do
           IFS=":" read -r SPREADSHEET_NAME SHEET_NAME port <<< "$SHEET"
           echo "Update sheets"
