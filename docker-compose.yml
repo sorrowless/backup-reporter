@@ -11,7 +11,7 @@ services:
       PGDATA: /var/lib/postgresql/data
       PGUSER: postgres
       WALG_S3_PREFIX: ${WALG_S3_PREFIX}
-      RECOVERY_WALG: true
+      RECOVERY_WALG: 'true'
       PGDATABASE: core_staging
       ARCHIVE_MODE: 'off'
 
