@@ -28,7 +28,7 @@ preview:
         echo 'Start validation'
         export VALIDATED_BACKUP="some_validated_backup"
         printf '{"tested_backup": "%s", "last_validation": "%s"}' $VALIDATED_BACKUP $(date '+%Y-%m-%dT%H:%M:%S') > ./validate_report.json
-        aws s3 cp validate_report.json ${WALG_S3_PREFIX}/validate_metadata/
+        aws s3 cp validate_report.json ${WALG_S3_PREFIX}/validate_metadata/SUCCCESS_$(date '+%Y_%m_%d-%H_%M_%S')
         aws s3 cp ${WALG_S3_PREFIX}/test_metadata/$(aws s3 ls ${WALG_S3_PREFIX}/test_metadata/ | tail -n 1 | awk '{print $4}') ./backup_report.json
         ./sheets.py
       else
@@ -38,17 +38,17 @@ preview:
         echo "No Validation"
         ./sheets.py
       fi
-  # after_script:
-  #   - >
-  #     if [ $CI_JOB_STATUS == 'success' ]; then
-  #       echo 'This will only run on success'
-  #     else
-  #       echo 'apprise  -t "Achtung!Alarm!Внимание!Failed checkout POSTGESQL files" -b "$CI_JOB_URL" "${APPRISE}"'
-  #       printf '{"tested_backup": "Failed", "last_validation": "%s"}' $(date '+%Y-%m-%dT%H:%M:%S') > ./validate_report.json
-  #       aws s3 cp validate_report.json ${WALG_S3_PREFIX}/validate_metadata/
-  #       aws s3 cp ${WALG_S3_PREFIX}/test_metadata/$(aws s3 ls ${WALG_S3_PREFIX}/test_metadata/ | tail -n 1 | awk '{print $4}') ./backup_report.json
-  #       ./sheets.py
-  #     fi
+  after_script:
+    - >
+      if [ $CI_JOB_STATUS == 'success' ]; then
+        echo 'This will only run on success'
+      else
+        echo 'apprise  -t "Achtung!Alarm!Внимание!Failed checkout POSTGESQL files" -b "$CI_JOB_URL" "${APPRISE}"'
+        printf '{"tested_backup": "Failed", "last_validation": "%s"}' $(date '+%Y-%m-%dT%H:%M:%S') > ./validate_report.json
+        aws s3 cp validate_report.json ${WALG_S3_PREFIX}/validate_metadata/FAILED_$(date '+%Y_%m_%d-%H_%M_%S')
+        aws s3 cp ${WALG_S3_PREFIX}/test_metadata/$(aws s3 ls ${WALG_S3_PREFIX}/test_metadata/ | tail -n 1 | awk '{print $4}') ./backup_report.json
+        ./sheets.py
+      fi
 
 
 
