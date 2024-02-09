@@ -27,7 +27,7 @@ preview:
     - >
       if [[ $DIFF_DAYS -ge $INTERVAL_DAYS ]] || [[ $LAST_VALIDATION_RESULT == 'FAILED' ]]; then 
         echo 'Start validation'
-        $DOCKER_REGISTRY_URL
+        echo $DOCKER_REGISTRY_URL
         echo "$DOCKER_REGISTRY_PASSWORD" | docker login -u "$DOCKER_REGISTRY_LOGIN" --password-stdin "$DOCKER_REGISTRY_URL"
         docker-compose up -d
         docker ps
