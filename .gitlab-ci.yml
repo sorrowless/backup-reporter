@@ -1,5 +1,7 @@
 stages:
   - preview
+services:
+  - docker:23.0.0-dind
 
 preview:
   stage: preview
