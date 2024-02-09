@@ -55,7 +55,7 @@ preview:
       else
         echo 'apprise  -t "Achtung!Alarm!Внимание!Failed checkout POSTGESQL files" -b "$CI_JOB_URL" "${APPRISE}"'
         aws s3 cp ${WALG_S3_PREFIX}/validate_metadata/$( aws s3 ls s3://embily-staging-core-backup/db_backups/validate_metadata/ | grep "SUCCESS" | tail -n 1 | awk '{print $4}') ./old_validation.json
-        OLD_VALIDATED_BACKUP=$(echo $(cat old_validation.json | awk -F ',' '{print $1}' | awk -F ':' '{print $2}')
+        OLD_VALIDATED_BACKUP=$(cat old_validation.json | awk -F ',' '{print $1}' | awk -F ':' '{print $2}')
         echo $OLD_VALIDATED_BACKUP
         _OLD_VALIDATED_BACKUP=$(echo OLD_VALIDATED_BACKUP | sed -e 's/^["'\'']\|["'\'']*$//g')
         echo $_OLD_VALIDATED_BACKUP
