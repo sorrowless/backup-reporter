@@ -54,17 +54,18 @@ preview:
         echo 'This will only run on success'
       else
         echo 'apprise  -t "Achtung!Alarm!Внимание!Failed checkout POSTGESQL files" -b "$CI_JOB_URL" "${APPRISE}"'
-        aws s3 cp ${WALG_S3_PREFIX}/validate_metadata/$( aws s3 ls s3://embily-staging-core-backup/db_backups/validate_metadata/ | tail -n 1 | awk '{print $4}') ./old_validation.json
+        aws s3 cp ${WALG_S3_PREFIX}/validate_metadata/$( aws s3 ls s3://embily-staging-core-backup/db_backups/validate_metadata/ | grep "SUCCESS" | tail -n 1 | awk '{print $4}') ./old_validation.json
         OLD_VALIDATED_BACKUP=$(echo $(cat old_validation.json | awk -F ',' '{print $1}' | awk -F ':' '{print $2}') | sed -e 's/^["'\'']\|["'\'']*$//g')
         echo $OLD_VALIDATED_BACKUP
-        printf '{"tested_backup": "%s", "last_validation": "%s", "result_of_validation": "SUCCESS"}' $OLD_VALIDATED_BACKUP $(date '+%Y-%m-%dT%H:%M:%S') > ./validate_report.json
-        cat validate_report.json
-        aws s3 cp validate_report.json ${WALG_S3_PREFIX}/validate_metadata/$(date '+%Y_%m_%d-%H_%M_%S')-FAILED
-        aws s3 cp ${WALG_S3_PREFIX}/test_metadata/$(aws s3 ls ${WALG_S3_PREFIX}/test_metadata/ | tail -n 1 | awk '{print $4}') ./backup_report.json
-        for SHEET in ${SHEETS//,/ }; do
-          IFS=":" read -r SPREADSHEET_NAME SHEET_NAME port <<< "$SHEET"
-          ./update_sheets.py
-        done
+        
+        # printf '{"tested_backup": "%s", "last_validation": "%s", "result_of_validation": "FAILED"}' $OLD_VALIDATED_BACKUP $(date '+%Y-%m-%dT%H:%M:%S') > ./validate_report.json
+        # cat validate_report.json
+        # aws s3 cp validate_report.json ${WALG_S3_PREFIX}/validate_metadata/$(date '+%Y_%m_%d-%H_%M_%S')-FAILED
+        # aws s3 cp ${WALG_S3_PREFIX}/test_metadata/$(aws s3 ls ${WALG_S3_PREFIX}/test_metadata/ | tail -n 1 | awk '{print $4}') ./backup_report.json
+        # for SHEET in ${SHEETS//,/ }; do
+        #   IFS=":" read -r SPREADSHEET_NAME SHEET_NAME port <<< "$SHEET"
+        #   ./update_sheets.py
+        # done
       fi
 
 
