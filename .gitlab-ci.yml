@@ -41,6 +41,7 @@ preview:
         aws s3 cp ${WALG_S3_PREFIX}/test_metadata/$(aws s3 ls ${WALG_S3_PREFIX}/test_metadata/ | tail -n 1 | awk '{print $4}') ./backup_report.json
         aws s3 cp ${WALG_S3_PREFIX}/validate_metadata/$LAST_VALIDATION_FILE ./validate_report.json
         echo "No Validation"
+        exit 1
         for SHEET in ${SHEETS//,/ }; do
           IFS=":" read -r SPREADSHEET_NAME SHEET_NAME port <<< "$SHEET"
           echo "Update sheets"
