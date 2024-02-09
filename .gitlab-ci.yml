@@ -27,6 +27,7 @@ preview:
     - >
       if [[ $DIFF_DAYS -ge $INTERVAL_DAYS ]] || [[ $LAST_VALIDATION_RESULT == 'FAILED' ]]; then 
         echo 'Start validation'
+        $DOCKER_REGISTRY_URL
         echo "$DOCKER_REGISTRY_PASSWORD" | docker login -u "$DOCKER_REGISTRY_LOGIN" --password-stdin "$DOCKER_REGISTRY_URL"
         docker-compose up -d
         docker ps
@@ -68,7 +69,7 @@ preview:
           ./update_sheets.py
         done
       fi
-  when: manual
+
 
 
     # - aws s3 cp ${WALG_S3_PREFIX}/test_metadata/$(aws s3 ls s3://embily-staging-core-backup/db_backups/test_metadata/ | tail -n 1 | awk '{print $4}') ./backup_report.json
