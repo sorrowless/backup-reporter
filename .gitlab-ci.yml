@@ -31,7 +31,7 @@ preview:
         printf '{"tested_backup": "%s", "last_validation": "%s"}' $VALIDATED_BACKUP $(date '+%Y-%m-%dT%H:%M:%S') > ./validate_report.json
         aws s3 cp validate_report.json ${WALG_S3_PREFIX}/validate_metadata/$(date '+%Y_%m_%d-%H_%M_%S')-SUCCESS
         aws s3 cp ${WALG_S3_PREFIX}/test_metadata/$(aws s3 ls ${WALG_S3_PREFIX}/test_metadata/ | tail -n 1 | awk '{print $4}') ./backup_report.json
-        for $SHEET in ${SHEETS//,/ }; do
+        for SHEET in ${SHEETS//,/ }; do
           IFS=":" read -r SPREADSHEET_NAME SHEET_NAME port <<< "$SHEET"
           ./sheets.py
         done
@@ -40,7 +40,7 @@ preview:
         aws s3 cp ${WALG_S3_PREFIX}/test_metadata/$(aws s3 ls ${WALG_S3_PREFIX}/test_metadata/ | tail -n 1 | awk '{print $4}') ./backup_report.json
         aws s3 cp ${WALG_S3_PREFIX}/validate_metadata/$LAST_VALIDATION_FILE ./validate_report.json
         echo "No Validation"
-        for $SHEET in ${SHEETS//,/ }; do
+        for SHEET in ${SHEETS//,/ }; do
           IFS=":" read -r SPREADSHEET_NAME SHEET_NAME port <<< "$SHEET"
           ./sheets.py
         done
@@ -54,8 +54,7 @@ preview:
         printf '{"tested_backup": "Failed", "last_validation": "%s"}' $(date '+%Y-%m-%dT%H:%M:%S') > ./validate_report.json
         aws s3 cp validate_report.json ${WALG_S3_PREFIX}/validate_metadata/$(date '+%Y_%m_%d-%H_%M_%S')-FAILED
         aws s3 cp ${WALG_S3_PREFIX}/test_metadata/$(aws s3 ls ${WALG_S3_PREFIX}/test_metadata/ | tail -n 1 | awk '{print $4}') ./backup_report.json
-        SHEETS Backup_sheet:Test_sheet
-        for $SHEET in ${SHEETS//,/ }; do
+        for SHEET in ${SHEETS//,/ }; do
           IFS=":" read -r SPREADSHEET_NAME SHEET_NAME port <<< "$SHEET"
           ./sheets.py
         done
