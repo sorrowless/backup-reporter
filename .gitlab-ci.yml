@@ -12,7 +12,7 @@ preview:
       pip install apprise && pip install awscli && pip install oauth2client && pip install gspread
     - |
       aws s3 ls ${WALG_S3_PREFIX}  #Check bucket is present
-      export LAST_VALIDATION=$( aws s3 ls s3://embily-staging-core-backup/db_backups/validate_metadata/ | tail -n 1 ) || true #Check validation is present
+      export LAST_VALIDATION=$( aws s3 ls ${WALG_S3_PREFIX}/validate_metadata/ | tail -n 1 ) || true #Check validation is present
       if [[ -z $LAST_VALIDATION ]]; then
         export DIFF_DAYS=1000
       else 
