@@ -14,11 +14,19 @@ class BackupReporter(ABC):
             aws_access_key_id: str,
             aws_secret_access_key: str,
             aws_region: str,
-            s3_path: str) -> None:
+            s3_path: str,
+            type: str,
+            customer: str,
+            supposed_backups_count: str) -> None:
         self.aws_access_key_id = aws_access_key_id
         self.aws_secret_access_key = aws_secret_access_key
         self.aws_region = aws_region
         self.s3_path = s3_path
+
+        self.metadata = BackupMetadata()
+        self.metadata.type = type
+        self.metadata.customer = customer
+        self.metadata.supposed_backups_count = supposed_backups_count
 
     def _gather_metadata(self) -> BackupMetadata:
         '''
@@ -52,17 +60,20 @@ class DockerPostgresBackupReporter(BackupReporter):
             aws_access_key_id: str,
             aws_secret_access_key: str,
             aws_region: str,
-            s3_path: str) -> None:
+            s3_path: str,
+            customer: str,
+            supposed_backups_count: str) -> None:
 
         super().__init__(
             aws_access_key_id = aws_access_key_id,
             aws_secret_access_key = aws_secret_access_key,
             aws_region = aws_region,
-            s3_path = s3_path)
+            s3_path = s3_path,
+            customer = customer,
+            supposed_backups_count = supposed_backups_count,
+            type = "DockerPostgres")
 
         self.container_name = container_name
-        self.metadata = BackupMetadata()
-        self.metadata.type = "DockerPostgres"
 
     def _gather_metadata(self) -> BackupMetadata:
         '''Gather information about backup to dict of variables'''
@@ -73,7 +84,7 @@ class DockerPostgresBackupReporter(BackupReporter):
 
         self.metadata.backup_name = last_backup.get("backup_name", "None")
         self.metadata.last_backup_date = last_backup.get("time", "None")
-        self.metadata.size = last_backup.get("compressed_size", "None")
+        self.metadata.size = last_backup.get("compressed_size", "None") /1024/1024
         self.metadata.count_of_backups = len(wal_show[0])
 
         s3_path = "/".join(self.s3_path.split("/")[:3])

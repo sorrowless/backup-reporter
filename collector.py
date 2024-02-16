@@ -42,10 +42,12 @@ class BackupCollector:
         result.type = metadata.get("type", "None")
         result.size = metadata.get("size", "None")
         result.time = metadata.get("time", "None")
+        result.customer = metadata.get("customer", "None")
         result.placement = metadata.get("placement", "None")
         result.backup_name = metadata.get("backup_name", "None")
         result.count_of_backups = metadata.get("count_of_backups", "None")
         result.last_backup_date = metadata.get("last_backup_date", "None")
+        result.supposed_backups_count = metadata.get("supposed_backups_count", "None")
 
         logging.info(f"Collect metadata from {s3_path} complete")
         return result
@@ -59,11 +61,11 @@ class BackupCollector:
     def _compile_csv(self, metadata: list) -> str:
         logging.info(f"Compile csv file")
         csv_path = "tmp_report.csv"
-        self._csv_write([[ "type", "placement", "size", "time", "backup_name", "count_of_backups", "last_backup_date" ]], csv_path)
+        self._csv_write([[ "Customer", "DB type", "Backup Placement", "Size in MB", "Backup time spent", "Backup name", "Backups count", "Supposed Backups Count", "Last Backup Date" ]], csv_path)
 
         backups_info = []
         for data in metadata:
-            row = [ data.type, data.placement, data.size, data.time, data.backup_name, data.count_of_backups, data.last_backup_date ]
+            row = [ data.customer, data.type, data.placement, data.size, data.time, data.backup_name, data.count_of_backups, data.supposed_backups_count, data.last_backup_date ]
             backups_info.append(row)
         
         self._csv_write(backups_info, csv_path)

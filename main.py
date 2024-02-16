@@ -36,6 +36,20 @@ if __name__ == "__main__":
         Format MUST be like following: --bucket={'s3_path': 's3://bucket_name/in_bucket_path/metadata_file_name.txt', 'aws_access_key_id': 'key', 'aws_secret_access_key': 'key', 'aws_region': 'region'}"""
     )
 
+    arg_parser.add_argument("--customer",
+        type=str,
+        default="",
+        required=not is_config_set,
+        help="Backup customer"
+    )
+
+    arg_parser.add_argument("--supposed_backups_count",
+        type=str,
+        default="",
+        required=not is_config_set,
+        help="Supposed backups count"
+    )
+
     ### Reported specific args
 
     execution_mode.add_argument("--docker_postgres",
@@ -107,7 +121,9 @@ if __name__ == "__main__":
             aws_secret_access_key = confs["bucket"][0]["aws_secret_access_key"],
             aws_region = confs["bucket"][0]["aws_region"],
             s3_path = confs["bucket"][0]["s3_path"],
-            container_name = confs["container_name"]
+            container_name = confs["container_name"],
+            customer = confs["customer"],
+            supposed_backups_count = confs["supposed_backups_count"]
         )
         reporter.report()
 
