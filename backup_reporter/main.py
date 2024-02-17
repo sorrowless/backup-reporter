@@ -3,12 +3,12 @@ import sys
 import logging
 import ast
 
-from reporters import DockerPostgresBackupReporter
-from collector import BackupCollector
-from utils import set_confs
+from backup_reporter.reporters import DockerPostgresBackupReporter
+from backup_reporter.collector import BackupCollector
+from backup_reporter.utils import set_confs
 
 
-if __name__ == "__main__":
+def start():
     arg_parser = argparse.ArgumentParser()
     execution_mode = arg_parser.add_mutually_exclusive_group()
 
@@ -123,10 +123,14 @@ if __name__ == "__main__":
             s3_path = confs["bucket"][0]["s3_path"],
             container_name = confs["container_name"],
             customer = confs["customer"],
-            supposed_backups_count = confs["supposed_backups_count"]
+            supposed_backups_count = confs["supposed_backups_count"],
+            aws_endpoint_url = confs["bucket"][0]["aws_endpoint_url"]
         )
         reporter.report()
 
     else:
-        print("You MUST chose one reporter mode or colletctor mode")
+        print("You MUST chose one reporter mode or collector mode")
         exit(1)
+
+if __name__ == "__main__":
+    start()

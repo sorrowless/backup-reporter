@@ -1,0 +1,22 @@
+[tool.poetry]
+name = "backup-reporter"
+version = "0.2.0"
+description = "Collect and show info about various backups"
+authors = ["Dmitry Razin <d.razin@oom.ag>", "Stan Bogatkin <s@sbog.ru>"]
+readme = "README.md"
+packages = [{include = "backup_reporter"}]
+
+[tool.poetry.dependencies]
+python = "^3.8"
+boto3 = "^1.34.44"
+pyyaml = "^6.0.1"
+mergedeep = "^1.3.4"
+gspread = "^6.0.2"
+oauth2client = "^4.1.3"
+
+[tool.poetry.scripts]
+backup-reporter = "backup_reporter.main:start"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

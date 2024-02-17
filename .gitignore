@@ -2,3 +2,4 @@
 *config.yml*
 *.vscode*
 *reporter_credentials.json*
+dist*

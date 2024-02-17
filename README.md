@@ -1,6 +1,6 @@
 # Backup Reporter
 
-This repository contains source code for backup reporter tool. That tool can collect backup information, upload it to S3 buckets, than collect bunch of backup information files, get them together into one csv file and upload it to google spreadsheet.
+This repository contains source code for backup reporter tool. That tool can collect backup information, upload it to S3 buckets, then collect bunch of backup information files, get them together into one csv file and upload it to google spreadsheet.
 
 Backup reporter has two working modes: reporter and collector.
 
