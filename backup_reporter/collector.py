@@ -5,7 +5,7 @@ import boto3
 import gspread
 import logging
 
-from dataclass import BackupMetadata
+from backup_reporter.dataclass import BackupMetadata
 from oauth2client.service_account import ServiceAccountCredentials
 
 
