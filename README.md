@@ -1,17 +1,20 @@
-# Backup-Reporter  
-В данном проекте существует два варианта реализации:  
-- Интегрированный вариант (где серверная часть и валидирующая совмещены)
-- Вариант с раздельной реализацией серверной и валидирующей частью
+# Backup Reporter
 
-### Интегрированный вариант    
-Данный вариант находится в мастер ветке, состоит из CI скрипта, скрипта загрузки данных в гугл-таблицы (update_sheets.py) и скрипта проверки бэкапа (start.sh) и прилогающегося к нему docker-compose файла.
-Данный вариант разделен на три части:
- - before script - происходит устанвока необходимых зависимостей
- - script - происходит валидация (или нет) в зависимости от установленной периодичности и обновление гугл-таблиц, для этого происходит загрузка данных о бэкапах из бакета, куда их положил бэкап-клиент
- - after script Исполнение скрипта в случае провала валидации выгружает отчет о провале валидации в бакет, производит загрузку данных из бэкапа и обновляет гугл-таблицы
-### Вариант с раздельной реализацией
-Вариант с раздельной реализацией находится в двух ветках: 
-- only_server - здесь находится скрипт, который производит загрузку отчетов о бэкапах и их валидации из бакета и запись их содержимого на сервер. Все необходимые переменные он берет из файловой переменной SERVER_FILE, по строкам которой происходит итерация и запись в гугл-таблицу
-- only_validator - в этой ветке находится скрипт, который производит валидацию бэкапа и формирует отчет о результате валидиции, копируя его в бакет.  
+This repository contains source code for backup reporter tool. That tool can collect backup information, upload it to S3 buckets, then collect bunch of backup information files, get them together into one csv file and upload it to google spreadsheet.
 
-[Example Google Sheet](https://gitlab.oom.ag/infra/backup-reporter) - Пример таблицы
+Backup reporter has two working modes: reporter and collector.
+
+## Configuration
+Reporter can be configured with two ways: script arguments or configuration file. Possible configuration options you can find by typing `main.py -h`. To use config file just pass `--config your_config_file.yml` as script argument.
+All options from cli-help are same for config-file. As example following command: 
+- `python3 main.py --bucket="{'s3_path': 's3://bucket_name/in_bucket_path/metadata_file_name.txt', 'aws_access_key_id': 'key', 'aws_secret_access_key': 'key', 'aws_region': 'region'}" --docker_postgres` 
+
+can be written in file:
+```
+docker_postgres: true
+bucket:
+    - s3_path: s3://bucket_name/in_bucket_path/metadata_file_name.txt
+      aws_access_key_id: key
+      aws_secret_access_key: key
+      aws_region: region
+```
