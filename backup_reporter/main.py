@@ -73,48 +73,54 @@ def start():
         help="Setup collector"
     )
 
-    arg_parser.add_argument("--google_spreadsheet_credenrials_path",
+    arg_parser.add_argument("--google_spreadsheet_credentials_path",
         type=str,
         default="",
-        required='--collector' in sys.argv,
+        required=not is_config_set and '--collector' in sys.argv,
         help="""Path to credentials json to connect to google sheet"""
     )
 
     arg_parser.add_argument("--spreadsheet_name",
-        type=ast.literal_eval,
-        default=[],
-        required='--collector' in sys.argv,
-        action='append',
+        type=str,
+        default="",
+        required=not is_config_set and '--collector' in sys.argv,
         help="""Spreadsheet name where backups info will store"""
     )
 
     arg_parser.add_argument("--worksheet_name",
-        type=ast.literal_eval,
-        default=[],
-        required='--collector' in sys.argv,
-        action='append',
+        type=str,
+        default="",
+        required=not is_config_set and '--collector' in sys.argv,
         help="""Worksheet name where backups info will store"""
     )
 
+    arg_parser.add_argument("--sheet_owner",
+        type=str,
+        default="",
+        required=not is_config_set and '--collector' in sys.argv,
+        help="""Spreadsheet owner to share with"""
+    )
+
     arguments = arg_parser.parse_known_args()[0]
-    confs = set_confs(arguments) 
+    confs = set_confs(arguments)
 
     logging.basicConfig(
-        encoding='utf-8', 
-        level=getattr(logging, confs["logging_level"]), 
+        encoding='utf-8',
+        level=getattr(logging, confs["logging_level"]),
         handlers=[logging.StreamHandler(sys.stdout)]
     )
 
     if confs["collector"]:
         logging.info("Run collector")
         collector = BackupCollector(buckets = confs['bucket'],
-            google_spreadsheet_credenrials_path = confs['google_spreadsheet_credenrials_path'],
+            google_spreadsheet_credentials_path = confs['google_spreadsheet_credentials_path'],
             spreadsheet_name = confs['spreadsheet_name'],
-            worksheet_name = confs['worksheet_name'])
+            worksheet_name = confs['worksheet_name'],
+            sheet_owner = confs['sheet_owner'])
         collector.collect()
 
     elif confs["docker_postgres"]:
-        logging.info("Report about docker-postgress backups")
+        logging.info("Report about docker-postgres backups")
         reporter = DockerPostgresBackupReporter(
             aws_access_key_id = confs["bucket"][0]["aws_access_key_id"],
             aws_secret_access_key = confs["bucket"][0]["aws_secret_access_key"],
@@ -128,7 +134,7 @@ def start():
         reporter.report()
 
     else:
-        print("You MUST chose one reporter mode or collector mode")
+        print("You MUST choose either reporter mode or collector mode")
         exit(1)
 
 if __name__ == "__main__":
