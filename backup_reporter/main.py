@@ -74,10 +74,9 @@ def start():
     )
 
     arg_parser.add_argument("--google_spreadsheet_credenrials_path",
-        type=ast.literal_eval,
-        default=[],
+        type=str,
+        default="",
         required='--collector' in sys.argv,
-        action='append',
         help="""Path to credentials json to connect to google sheet"""
     )
 
