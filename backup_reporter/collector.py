@@ -11,25 +11,35 @@ from oauth2client.service_account import ServiceAccountCredentials
 
 class BackupCollector:
     def __init__(self, buckets: list,
-            google_spreadsheet_credenrials_path: str,
+            google_spreadsheet_credentials_path: str,
             spreadsheet_name: str,
-            worksheet_name: str) -> None:
+            worksheet_name: str,
+            sheet_owner: str) -> None:
         self.buckets = buckets
-        self.credenrials_path = google_spreadsheet_credenrials_path
+        self.credentials_path = google_spreadsheet_credentials_path
         self.spreadsheet_name = spreadsheet_name
         self.worksheet_name = worksheet_name
+        self.sheet_owner = sheet_owner
 
     def _collect_from_bucket(
             self,
             aws_access_key_id: str,
             aws_secret_access_key: str,
             aws_region: str,
-            s3_path: str) -> BackupMetadata:
+            s3_path: str,
+            aws_endpoint_url: str = None) -> BackupMetadata:
+        
+        kwargs = {
+           "aws_access_key_id": aws_access_key_id,
+           "aws_secret_access_key": aws_secret_access_key,
+           "region_name": aws_region,
+           "endpoint_url": aws_endpoint_url
+        }
 
-        s3 = boto3.resource('s3',
-            aws_access_key_id = aws_access_key_id,
-            aws_secret_access_key = aws_secret_access_key,
-            region_name = aws_region)
+        s3 = boto3.resource(
+            's3',
+            **{k:v for k,v in kwargs.items() if v is not None}
+        )
 
         logging.info(f"Collect metadata from {s3_path} ...")
 
@@ -78,14 +88,27 @@ class BackupCollector:
             "https://www.googleapis.com/auth/spreadsheets",
             "https://www.googleapis.com/auth/drive.file",
             "https://www.googleapis.com/auth/drive"]
-        credentials = ServiceAccountCredentials.from_json_keyfile_name(self.credenrials_path, scope)
+        credentials = ServiceAccountCredentials.from_json_keyfile_name(self.credentials_path, scope)
         client = gspread.authorize(credentials)
-        spreadsheet = client.open(self.spreadsheet_name)
+        try:
+            spreadsheet = client.open(self.spreadsheet_name)
+            logging.debug("List current permissions")
+            permissions = spreadsheet.list_permissions()
+            logging.debug(permissions)
+            for user in permissions:
+                if user["emailAddress"] == self.sheet_owner and user["role"] != "owner":
+                    logging.info(f"Change owner to {self.sheet_owner}")
+                    spreadsheet.transfer_ownership(user["id"])
+                    break
+        except gspread.exceptions.SpreadsheetNotFound as e:
+            spreadsheet = client.create(self.spreadsheet_name)
+            spreadsheet.share(self.sheet_owner, perm_type='user', role='writer')
 
         try:
+            logging.debug(f"Worksheets are: {spreadsheet.worksheets()}")
+            spreadsheet.worksheet(self.worksheet_name)
+        except gspread.exceptions.WorksheetNotFound as e:
             spreadsheet.add_worksheet(title=self.worksheet_name, rows="100", cols="20")
-        except:
-            pass
         
         spreadsheet.values_clear(self.worksheet_name + "!A1:L10000")
         spreadsheet.values_update(
@@ -101,7 +124,8 @@ class BackupCollector:
                 aws_access_key_id=bucket.get("aws_access_key_id"),
                 aws_secret_access_key=bucket.get("aws_secret_access_key"),
                 aws_region=bucket.get("aws_region"),
-                s3_path=bucket.get("s3_path")
+                s3_path=bucket.get("s3_path"),
+                aws_endpoint_url=bucket.get("aws_endpoint_url")
             ))
 
         csv = self._compile_csv(metadata)
