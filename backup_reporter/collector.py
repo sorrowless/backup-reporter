@@ -96,7 +96,7 @@ class BackupCollector:
             permissions = spreadsheet.list_permissions()
             logging.debug(permissions)
             for user in permissions:
-                if "emailAddress" in user and user["emailAddress"] == self.sheet_owner and user["role"] != "owner":
+                if user.get("emailAddress", None) == self.sheet_owner and user["role"] != "owner":
                     logging.info(f"Change owner to {self.sheet_owner}")
                     spreadsheet.transfer_ownership(user["id"])
                     break
