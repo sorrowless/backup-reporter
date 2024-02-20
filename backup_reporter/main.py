@@ -105,31 +105,30 @@ def start():
     confs = set_confs(arguments)
 
     logging.basicConfig(
-        encoding='utf-8',
-        level=getattr(logging, confs["logging_level"]),
+        level=getattr(logging, confs.get("logging_level", None)),
         handlers=[logging.StreamHandler(sys.stdout)]
     )
 
     if confs["collector"]:
         logging.info("Run collector")
-        collector = BackupCollector(buckets = confs['bucket'],
-            google_spreadsheet_credentials_path = confs['google_spreadsheet_credentials_path'],
-            spreadsheet_name = confs['spreadsheet_name'],
-            worksheet_name = confs['worksheet_name'],
-            sheet_owner = confs['sheet_owner'])
+        collector = BackupCollector(buckets = confs.get('bucket', None),
+            google_spreadsheet_credentials_path = confs.get('google_spreadsheet_credentials_path', None),
+            spreadsheet_name = confs.get('spreadsheet_name', None),
+            worksheet_name = confs.get('worksheet_name', None),
+            sheet_owner = confs.get('sheet_owner', None))
         collector.collect()
 
     elif confs["docker_postgres"]:
         logging.info("Report about docker-postgres backups")
         reporter = DockerPostgresBackupReporter(
-            aws_access_key_id = confs["bucket"][0]["aws_access_key_id"],
-            aws_secret_access_key = confs["bucket"][0]["aws_secret_access_key"],
-            aws_region = confs["bucket"][0]["aws_region"],
-            s3_path = confs["bucket"][0]["s3_path"],
-            container_name = confs["container_name"],
-            customer = confs["customer"],
-            supposed_backups_count = confs["supposed_backups_count"],
-            aws_endpoint_url = confs["bucket"][0]["aws_endpoint_url"]
+            aws_access_key_id = confs["bucket"][0].get("aws_access_key_id", None),
+            aws_secret_access_key = confs["bucket"][0].get("aws_secret_access_key", None),
+            aws_region = confs["bucket"][0].get("aws_region", None),
+            s3_path = confs["bucket"][0].get("s3_path", None),
+            container_name = confs.get("container_name", None),
+            customer = confs.get("customer", None),
+            supposed_backups_count = confs.get("supposed_backups_count", None),
+            aws_endpoint_url = confs["bucket"][0].get("aws_endpoint_url", None)
         )
         reporter.report()
 
