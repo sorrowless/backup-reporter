@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "backup-reporter"
-version = "0.3.0"
+version = "0.3.2"
 description = "Collect and show info about various backups"
 authors = ["Dmitry Razin <d.razin@oom.ag>", "Stan Bogatkin <s@sbog.ru>"]
 readme = "README.md"
