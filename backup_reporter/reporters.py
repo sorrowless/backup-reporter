@@ -63,7 +63,7 @@ class BackupReporter(ABC):
 
 class DockerPostgresBackupReporter(BackupReporter):
     def __init__(
-            self, 
+            self,
             container_name: str,
             aws_access_key_id: str,
             aws_secret_access_key: str,
@@ -88,7 +88,7 @@ class DockerPostgresBackupReporter(BackupReporter):
     def _gather_metadata(self) -> BackupMetadata:
         '''Gather information about backup to dict of variables'''
         logging.info(f"Gather metadata from {self.container_name} ...")
-        wal_show = exec_cmd(["docker", "exec", "-it", self.container_name, "wal-g", "wal-show", "--detailed-json" ])
+        wal_show = exec_cmd(["docker", "exec", "-i", self.container_name, "wal-g", "wal-show", "--detailed-json" ])
         wal_show = json.loads(wal_show)
         last_backup = wal_show[0]['backups'][-1]
 
