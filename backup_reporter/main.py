@@ -128,7 +128,8 @@ def start():
             container_name = confs.get("container_name", None),
             customer = confs.get("customer", None),
             supposed_backups_count = confs.get("supposed_backups_count", None),
-            aws_endpoint_url = confs["bucket"][0].get("aws_endpoint_url", None)
+            aws_endpoint_url = confs["bucket"][0].get("aws_endpoint_url", None),
+            description = confs.get("description", None)
         )
         reporter.report()
 
