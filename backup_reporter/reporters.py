@@ -18,6 +18,7 @@ class BackupReporter(ABC):
             type: str,
             customer: str,
             supposed_backups_count: str,
+            description: str,
             aws_endpoint_url: str = None) -> None:
         self.aws_access_key_id = aws_access_key_id
         self.aws_secret_access_key = aws_secret_access_key
@@ -29,6 +30,7 @@ class BackupReporter(ABC):
         self.metadata.type = type
         self.metadata.customer = customer
         self.metadata.supposed_backups_count = supposed_backups_count
+        self.metadata.description = description
 
     def _gather_metadata(self) -> BackupMetadata:
         '''
