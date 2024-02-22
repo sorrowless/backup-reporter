@@ -12,6 +12,7 @@ class BackupMetadata:
     customer: str = None
     placement: str = None
     backup_name: str = None
+    description: str = None
     last_backup_date: str = None
     count_of_backups: str = None
     supposed_backups_count: str = None
