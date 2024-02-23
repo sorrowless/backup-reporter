@@ -73,6 +73,7 @@ class DockerPostgresBackupReporter(BackupReporter):
             s3_path: str,
             customer: str,
             supposed_backups_count: str,
+            description: str,
             aws_endpoint_url: str = None) -> None:
 
         super().__init__(
@@ -83,28 +84,49 @@ class DockerPostgresBackupReporter(BackupReporter):
             customer = customer,
             supposed_backups_count = supposed_backups_count,
             type = "DockerPostgres",
+            description = description,
             aws_endpoint_url = aws_endpoint_url)
 
         self.container_name = container_name
+        self.metadata.last_backup_date = None
 
     def _gather_metadata(self) -> BackupMetadata:
         '''Gather information about backup to dict of variables'''
         logging.info(f"Gather metadata from {self.container_name} ...")
         wal_show = exec_cmd(["docker", "exec", "-i", self.container_name, "wal-g", "wal-show", "--detailed-json" ])
         wal_show = json.loads(wal_show)
-        last_backup = wal_show[0]['backups'][-1]
+        full_backup_count = 0
+        last_full_backup_date = None
+        incremental_backup_count = 0
+        for backup in wal_show[0]['backups']:
+            backup_time = datetime.strptime(backup.get('time'), '%Y-%m-%dT%H:%M:%SZ')
+            if not self.metadata.last_backup_date or backup_time > self.metadata.last_backup_date:
+                self.metadata.last_backup_date = backup_time  # Beware, this is ALWAYS about LAST backup - full or incremental
+                self.metadata.backup_name = backup.get("backup_name", "None")  # Also ALWAYS about LAST backup
+                self.metadata.size = round(backup.get("compressed_size", "None") /1024/1024, 1)  # Can be overridden below
+                finish_time = datetime.strptime(backup.get('finish_time'), backup.get('date_fmt'))  # Can be overridden below
+                start_time = datetime.strptime(backup.get('start_time'), backup.get('date_fmt'))  # Can be overridden below
+                self.metadata.time = str(finish_time - start_time)  # Can be overridden below
 
-        self.metadata.backup_name = last_backup.get("backup_name", "None")
-        self.metadata.last_backup_date = last_backup.get("time", "None")
-        self.metadata.size = last_backup.get("compressed_size", "None") /1024/1024
-        self.metadata.count_of_backups = len(wal_show[0])
+            backup_wal_file_name = backup.get("wal_file_name", "Unknown")
+            if backup['backup_name'].endswith(backup_wal_file_name):  # If so, we're looking at full backup
+                full_backup_count += 1
+                if not last_full_backup_date or backup_time > last_full_backup_date:  # Override backup info with the size of last full backup
+                    last_full_backup_date = backup_time
+                    self.metadata.size = round(backup.get("compressed_size", "None") /1024/1024, 1)
+                    finish_time = datetime.strptime(backup.get('finish_time'), backup.get('date_fmt'))  # Can be overridden below
+                    start_time = datetime.strptime(backup.get('start_time'), backup.get('date_fmt'))  # Can be overridden below
+                    self.metadata.time = str(finish_time - start_time)  # Can be overridden below
+            else:
+                incremental_backup_count += 1
+        # Now we have to serialize last backup date
+        self.metadata.last_backup_date = str(self.metadata.last_backup_date)
+
+        self.metadata.count_of_backups = f"{len(wal_show[0]['backups'])} total / {full_backup_count} full / {incremental_backup_count} incremental"
 
         s3_path = "/".join(self.s3_path.split("/")[:3])
         self.metadata.placement = s3_path
 
-        finish_time = datetime.strptime(last_backup.get('finish_time'), last_backup.get('date_fmt'))
-        start_time = datetime.strptime(last_backup.get('start_time'), last_backup.get('date_fmt'))
-        self.metadata.time = str(finish_time - start_time)
-
         logging.info("Gather metadata success")
+        logging.debug(self.metadata)
         return self.metadata
