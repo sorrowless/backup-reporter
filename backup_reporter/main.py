@@ -3,7 +3,7 @@ import sys
 import logging
 import ast
 
-from backup_reporter.reporters import DockerPostgresBackupReporter
+from backup_reporter.reporters import *
 from backup_reporter.collector import BackupCollector
 from backup_reporter.utils import set_confs
 
@@ -42,6 +42,20 @@ def start():
             aws_region = confs["bucket"][0].get("aws_region", None),
             s3_path = confs["bucket"][0].get("s3_path", None),
             container_name = confs.get("container_name", None),
+            customer = confs.get("customer", None),
+            supposed_backups_count = confs.get("supposed_backups_count", None),
+            aws_endpoint_url = confs["bucket"][0].get("aws_endpoint_url", None),
+            description = confs.get("description", None)
+        )
+        reporter.report()
+
+    elif confs["files_bucket"]:
+        logging.info("Report about docker-postgres backups")
+        reporter = FilesBucketReporterBackupReporter(
+            aws_access_key_id = confs["bucket"][0].get("aws_access_key_id", None),
+            aws_secret_access_key = confs["bucket"][0].get("aws_secret_access_key", None),
+            aws_region = confs["bucket"][0].get("aws_region", None),
+            s3_path = confs["bucket"][0].get("s3_path", None),
             customer = confs.get("customer", None),
             supposed_backups_count = confs.get("supposed_backups_count", None),
             aws_endpoint_url = confs["bucket"][0].get("aws_endpoint_url", None),
