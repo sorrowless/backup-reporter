@@ -7,6 +7,7 @@ from abc import ABC
 from datetime import datetime
 from backup_reporter.dataclass import BackupMetadata
 from backup_reporter.utils import exec_cmd
+from fnmatch import fnmatch
 
 
 class BackupReporter(ABC):
@@ -154,6 +155,7 @@ class FilesBucketReporterBackupReporter(BackupReporter):
             customer: str,
             supposed_backups_count: str,
             description: str,
+            files_mask: str,
             aws_endpoint_url: str = None) -> None:
 
         super().__init__(
@@ -168,6 +170,7 @@ class FilesBucketReporterBackupReporter(BackupReporter):
             aws_endpoint_url = aws_endpoint_url)
 
         self.metadata.last_backup_date = None
+        self.files_mask = files_mask
 
     def _gather_metadata(self) -> BackupMetadata:
         kwargs = {
@@ -187,9 +190,10 @@ class FilesBucketReporterBackupReporter(BackupReporter):
         latest_backup = {"key": None, "last_modified": datetime(2000, 1, 1, tzinfo=pytz.UTC), "size": 0}
         count_of_backups = 0
         for object in s3.objects.all():
-            if latest_backup["last_modified"] < object.last_modified:
-                latest_backup = {"key": object.key, "last_modified": object.last_modified, "size": object.size}
-            count_of_backups += 1
+            if fnmatch(object.key, self.files_mask):
+                if latest_backup["last_modified"] < object.last_modified:
+                    latest_backup = {"key": object.key, "last_modified": object.last_modified, "size": object.size}
+                count_of_backups += 1
 
         self.metadata.count_of_backups = count_of_backups
         self.metadata.last_backup_date = latest_backup["last_modified"]

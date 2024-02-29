@@ -59,7 +59,8 @@ def start():
             customer = confs.get("customer", None),
             supposed_backups_count = confs.get("supposed_backups_count", None),
             aws_endpoint_url = confs["bucket"][0].get("aws_endpoint_url", None),
-            description = confs.get("description", None)
+            description = confs.get("description", None),
+            files_mask = confs.get("files_mask", None)
         )
         reporter.report()
 
