@@ -200,5 +200,6 @@ class FilesBucketReporterBackupReporter(BackupReporter):
         self.metadata.backup_name = latest_backup["key"]
         self.metadata.placement = bucket_name
         self.metadata.size = round(latest_backup["size"]/1024/1024, 1)
+        self.metadata.time = 0
 
         return self.metadata
