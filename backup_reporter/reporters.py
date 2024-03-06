@@ -207,3 +207,72 @@ class FilesBucketReporterBackupReporter(BackupReporter):
         self.metadata.time = 0
 
         return self.metadata
+
+class DockerMariadbBackupReporter(BackupReporter):
+    '''
+        Reporter for uploaded to S3 files with backups.
+    '''
+    def __init__(
+            self,
+            aws_access_key_id: str,
+            aws_secret_access_key: str,
+            aws_region: str,
+            s3_path: str,
+            customer: str,
+            supposed_backups_count: str,
+            description: str,
+            files_mask: str,
+            aws_endpoint_url: str = None) -> None:
+
+        super().__init__(
+            aws_access_key_id = aws_access_key_id,
+            aws_secret_access_key = aws_secret_access_key,
+            aws_region = aws_region,
+            s3_path = s3_path,
+            customer = customer,
+            supposed_backups_count = supposed_backups_count,
+            type = "DockerMariadb",
+            description = description,
+            aws_endpoint_url = aws_endpoint_url)
+
+        self.metadata.last_backup_date = None
+        self.files_mask = files_mask
+
+    def _gather_metadata(self) -> BackupMetadata:
+            kwargs = {
+            "aws_access_key_id": self.aws_access_key_id,
+            "aws_secret_access_key": self.aws_secret_access_key,
+            "region_name": self.aws_region,
+            "endpoint_url": self.aws_endpoint_url
+            }
+            s3 = boto3.resource(
+                's3',
+                **{k:v for k,v in kwargs.items() if v is not None}
+            )
+
+            bucket_name = self.s3_path.split("/")[2]
+            s3 = s3.Bucket(bucket_name)
+            directories = []
+            count_of_backups = 0
+            backup_total_size = 0
+            response = s3.list_objects_v2(Prefix='mariadb/full/', Delimiter='/')
+            if 'CommonPrefixes' in response:
+                directories = [prefix['Prefix'] for prefix in response['CommonPrefixes']]
+                latest_backup = directories[-1]
+                count_of_backups = len(directories)
+                objects_of_backup = s3.list_objects_v2(Prefix=latest_backup)
+                if 'Contents' in objects_of_backup:
+                    for obj in objects_of_backup['Contents']:
+                        backup_total_size += obj['Size']
+            else:
+                print("No directories found in the specified path.")
+                latest_backup = 'None'
+                count_of_backups = 0
+                backup_total_size = 0
+            self.metadata.count_of_backups = count_of_backups
+            self.metadata.last_backup_date = latest_backup.split('/')[-2]
+            self.metadata.backup_name = latest_backup
+            self.metadata.placement = bucket_name
+            self.metadata.size = round(backup_total_size/1024/1024, 1)
+            self.metadata.time = 0
+            return self.metadata

@@ -64,6 +64,20 @@ def start():
         )
         reporter.report()
 
+    elif confs["docker_mariadb"]:
+        logging.info("Report about docker-mariadb backups")
+        reporter = DockerMariadbBackupReporter(
+            aws_access_key_id = confs["bucket"][0].get("aws_access_key_id", None),
+            aws_secret_access_key = confs["bucket"][0].get("aws_secret_access_key", None),
+            aws_region = confs["bucket"][0].get("aws_region", None),
+            s3_path = confs["bucket"][0].get("s3_path", None),
+            customer = confs.get("customer", None),
+            supposed_backups_count = confs.get("supposed_backups_count", None),
+            aws_endpoint_url = confs["bucket"][0].get("aws_endpoint_url", None),
+            description = confs.get("description", None),
+        )
+        reporter.report()
+
     else:
         print("You MUST choose either reporter mode or collector mode")
         exit(1)
