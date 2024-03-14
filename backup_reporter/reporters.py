@@ -245,22 +245,31 @@ class DockerMariadbBackupReporter(BackupReporter):
             "region_name": self.aws_region,
             "endpoint_url": self.aws_endpoint_url
             }
-            s3 = boto3.resource(
+            s3 = boto3.client(
                 's3',
                 **{k:v for k,v in kwargs.items() if v is not None}
             )
 
             bucket_name = self.s3_path.split("/")[2]
-            s3 = s3.Bucket(bucket_name)
             directories = []
             count_of_backups = 0
             backup_total_size = 0
-            response = s3.list_objects_v2(Prefix='mariadb/full/', Delimiter='/')
+            response = s3.list_objects_v2(Bucket=bucket_name, Prefix='mariadb/full/', Delimiter='/')
             if 'CommonPrefixes' in response:
                 directories = [prefix['Prefix'] for prefix in response['CommonPrefixes']]
-                latest_backup = directories[-1]
+                latest_full_backup = directories[-1]
+                latest_date_of_backup = latest_full_backup.split('/')[-2]
                 count_of_backups = len(directories)
-                objects_of_backup = s3.list_objects_v2(Prefix=latest_backup)
+                inc_path = 'mariadb/inc/' + latest_date_of_backup
+                response_from_inc_path = s3.list_objects_v2(Bucket=bucket_name, Prefix=inc_path, Delimiter='/')
+                if 'CommonPrefixes' in response_from_inc_path:
+                    directories = [prefix['Prefix'] for prefix in response_from_inc_path['CommonPrefixes']]
+                    latest_backup = directories[-1]
+                    latest_date_of_backup = latest_backup.split('/')[-2]
+                else:
+                    print("No directories found in the incremental path.")
+                    latest_backup = latest_full_backup
+                objects_of_backup = s3.list_objects_v2(Bucket=bucket_name, Prefix=latest_backup)
                 if 'Contents' in objects_of_backup:
                     for obj in objects_of_backup['Contents']:
                         backup_total_size += obj['Size']
@@ -270,7 +279,7 @@ class DockerMariadbBackupReporter(BackupReporter):
                 count_of_backups = 0
                 backup_total_size = 0
             self.metadata.count_of_backups = count_of_backups
-            self.metadata.last_backup_date = latest_backup.split('/')[-2]
+            self.metadata.last_backup_date = latest_date_of_backup
             self.metadata.backup_name = latest_backup
             self.metadata.placement = bucket_name
             self.metadata.size = round(backup_total_size/1024/1024, 1)
