@@ -20,7 +20,7 @@ def start():
     confs = set_confs(arguments)
 
     logging.basicConfig(
-        level=getattr(logging, confs.get("logging_level", None)),
+        level=getattr(logging, confs.get("logging_level", "INFO")),
         handlers=[logging.StreamHandler(sys.stdout)]
     )
 
