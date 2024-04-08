@@ -1,7 +1,6 @@
 import argparse
 import sys
 import logging
-import ast
 import backup_reporter.reporters as rps
 
 from backup_reporter.collector import BackupCollector
@@ -21,7 +20,7 @@ def start():
     confs = set_confs(arguments)
 
     logging.basicConfig(
-        level=getattr(logging, confs.get("logging_level", None)),
+        level=getattr(logging, confs.get("logging_level", "INFO")),
         handlers=[logging.StreamHandler(sys.stdout)]
     )
 
