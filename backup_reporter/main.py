@@ -2,8 +2,8 @@ import argparse
 import sys
 import logging
 import ast
+import backup_reporter.reporters 
 
-from backup_reporter.reporters import *
 from backup_reporter.collector import BackupCollector
 from backup_reporter.utils import set_confs
 
@@ -36,7 +36,7 @@ def start():
 
     elif confs["docker_postgres"]:
         logging.info("Report about docker-postgres backups")
-        reporter = DockerPostgresBackupReporter(
+        reporter = backup_reporter.reporters.DockerPostgresBackupReporter(
             aws_access_key_id = confs["bucket"][0].get("aws_access_key_id", None),
             aws_secret_access_key = confs["bucket"][0].get("aws_secret_access_key", None),
             aws_region = confs["bucket"][0].get("aws_region", None),
@@ -50,8 +50,8 @@ def start():
         reporter.report()
 
     elif confs["files_bucket"]:
-        logging.info("Report about docker-postgres backups")
-        reporter = FilesBucketReporterBackupReporter(
+        logging.info("Report about files backups in S3 buckets")
+        reporter = backup_reporter.reporters.FilesBucketReporterBackupReporter(
             aws_access_key_id = confs["bucket"][0].get("aws_access_key_id", None),
             aws_secret_access_key = confs["bucket"][0].get("aws_secret_access_key", None),
             aws_region = confs["bucket"][0].get("aws_region", None),
