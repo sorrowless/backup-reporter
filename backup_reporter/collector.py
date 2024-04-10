@@ -4,8 +4,9 @@ import json
 import boto3
 import gspread
 import logging
+import datetime
 from time import sleep
-from gspread_formatting import *
+from gspread_formatting import Color, CellFormat, format_cell_range
 from oauth2client.service_account import ServiceAccountCredentials
 
 from backup_reporter.dataclass import BackupMetadata
@@ -120,20 +121,39 @@ class BackupCollector:
             body={'values': list(csv.reader(open(csv_path)))}
         )
 
+    def _color_backup_count(self, metadata: BackupMetadata) -> Color:
+        if int(metadata.count_of_backups) < 3:
+            return Color(1, 0, 0)
+        return Color(1, 1, 1)
+
+    def _color_supposed_backups_count(self, metadata: BackupMetadata) -> Color:
+        if int(metadata.count_of_backups) <= int(metadata.supposed_backups_count) - 3:
+            return Color(1, 0, 0)
+        elif int(metadata.count_of_backups) <  int(metadata.supposed_backups_count) - 2:
+            return Color(1, 0.5, 0)
+        return Color(1, 1, 1)
+
+    def _color_last_backup_date(self, metadata: BackupMetadata) -> Color:
+        last_backup_date = datetime.datetime.strptime(metadata.last_backup_date, '%Y-%m-%d %H:%M:%S%z')
+        time_delta = datetime.datetime.now() - last_backup_date.replace(tzinfo=None)
+        if time_delta.days > 7:
+            return Color(1, 0, 0)
+        return Color(1, 1, 1)
+
     def _set_color_matrix(self, metadata: list) -> list:
         result = [[Color(1, 1, 1), Color(1, 1, 1), Color(1, 1, 1), Color(1, 1, 1), Color(1, 1, 1)]]
         for data in metadata:
             result.append([
-                Color(1, 1, 1),
-                Color(1, 1, 1),
-                Color(1, 1, 1),
-                Color(1, 1, 1),
-                Color(1, 1, 1),
-                Color(1, 1, 1),
-                Color(1, 1, 1),
-                Color(1, 1, 1),
-                Color(1, 1, 1),
-                Color(1, 1, 1),
+                Color(1, 1, 1), # Customer
+                Color(1, 1, 1), # DB type
+                Color(1, 1, 1), # Backup Placement
+                Color(1, 1, 1), # Size in MB
+                Color(1, 1, 1), # Backup time spent
+                Color(1, 1, 1), # Backup name
+                self._color_backup_count(data), # Backup count
+                self._color_supposed_backups_count(data), # Supposed Backups Count
+                self._color_last_backup_date(data) , # Last Backup Date
+                Color(1, 1, 1), # Description
             ])
 
         return result
