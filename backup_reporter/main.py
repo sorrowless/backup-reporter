@@ -64,9 +64,9 @@ def start():
         )
         reporter.report()
 
-    elif confs["docker_mariadb"]:
-        logging.info("Report about docker-mariadb backups")
-        reporter = DockerMariadbBackupReporter(
+    elif confs["s3_mariadb"]:
+        logging.info("Report about S3-mariadb backups")
+        reporter = backup_reporter.reporters.S3MariadbBackupReporter(
             aws_access_key_id = confs["bucket"][0].get("aws_access_key_id", None),
             aws_secret_access_key = confs["bucket"][0].get("aws_secret_access_key", None),
             aws_region = confs["bucket"][0].get("aws_region", None),
