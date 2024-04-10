@@ -71,7 +71,7 @@ class BackupReporter(ABC):
 
 class DockerPostgresBackupReporter(BackupReporter):
     '''
-        Reporter for dockerizid Postgres Data Bases.
+        Reporter for Postgresql running in containers.
         For working reporter require permissions to work with docker socket.
     '''
     def __init__(
@@ -144,7 +144,7 @@ class DockerPostgresBackupReporter(BackupReporter):
 
 class FilesBucketReporterBackupReporter(BackupReporter):
     '''
-        Reporter for uploaded to S3 files with backups.
+        Report about backups from S3 bucket with plain files. Usually they are 1 file per 1 backup, but different schemes are available.
     '''
     def __init__(
             self,
