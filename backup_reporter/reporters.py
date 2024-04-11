@@ -265,14 +265,14 @@ class S3MariadbBackupReporter(BackupReporter):
                 latest_backup = directories[-1]
                 latest_date_of_backup = latest_backup.split('/')[-2]
             else:
-                print("No directories found in the incremental path.")
+                logging.info("No directories found in the incremental path.")
                 latest_backup = latest_full_backup
             objects_of_backup = s3.list_objects_v2(Bucket=bucket_name, Prefix=latest_backup)
             if 'Contents' in objects_of_backup:
                 for obj in objects_of_backup['Contents']:
                     backup_total_size += obj['Size']
         else:
-            print("No directories found in the specified path.")
+            logging.info("No directories found in the specified path.")
             latest_backup = 'None'
             count_of_backups = 0
             backup_total_size = 0
