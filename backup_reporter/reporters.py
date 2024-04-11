@@ -173,6 +173,9 @@ class FilesBucketReporterBackupReporter(BackupReporter):
         self.files_mask = files_mask
 
     def _gather_metadata(self) -> BackupMetadata:
+        '''
+            Gather information about backup from files in S3
+        '''
         kwargs = {
            "aws_access_key_id": self.aws_access_key_id,
            "aws_secret_access_key": self.aws_secret_access_key,
@@ -187,10 +190,11 @@ class FilesBucketReporterBackupReporter(BackupReporter):
         bucket_name = self.s3_path.split("/")[2]
         s3 = s3.Bucket(bucket_name)
 
-        latest_backup = {"key": None, "last_modified": datetime(2000, 1, 1, tzinfo=pytz.UTC), "size": 0}
+        latest_backup = {"key": None, "last_modified": datetime(2000, 1, 1, tzinfo=pytz.UTC), "size": 0} # Default latest backup
         count_of_backups = 0
+        # Get latest backup file
         for object in s3.objects.all():
-            if fnmatch(object.key, self.files_mask):
+            if fnmatch(object.key, self.files_mask): # Check if object name matches with files mask from config file
                 if latest_backup["last_modified"] < object.last_modified:
                     latest_backup = {"key": object.key, "last_modified": object.last_modified, "size": object.size}
                 count_of_backups += 1
