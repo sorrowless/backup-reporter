@@ -19,4 +19,4 @@ class BackupMetadata:
 
     def __str__(self):
         '''String representation of that DataClass is valid json string'''
-        return json.dumps(asdict(self))
+        return json.dumps(asdict(self), default=str)

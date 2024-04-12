@@ -1,14 +1,20 @@
 import boto3
 import json
 import logging
+import pytz
 
 from abc import ABC
 from datetime import datetime
 from backup_reporter.dataclass import BackupMetadata
 from backup_reporter.utils import exec_cmd
+from fnmatch import fnmatch
 
 
 class BackupReporter(ABC):
+    '''
+        Base backup reporter with common functionality.
+        It is highly recommended not to rewrite methods (except _gather_metadata) in child classes.
+    '''
     def __init__(
             self,
             aws_access_key_id: str,
@@ -64,6 +70,10 @@ class BackupReporter(ABC):
 
 
 class DockerPostgresBackupReporter(BackupReporter):
+    '''
+        Reporter for Postgresql running in containers.
+        For working reporter require permissions to work with docker socket.
+    '''
     def __init__(
             self,
             container_name: str,
@@ -129,4 +139,71 @@ class DockerPostgresBackupReporter(BackupReporter):
 
         logging.info("Gather metadata success")
         logging.debug(self.metadata)
+        return self.metadata
+
+
+class FilesBucketReporterBackupReporter(BackupReporter):
+    '''
+        Report about backups from S3 bucket with plain files. Usually they are 1 file per 1 backup, but different schemes are available.
+    '''
+    def __init__(
+            self,
+            aws_access_key_id: str,
+            aws_secret_access_key: str,
+            aws_region: str,
+            s3_path: str,
+            customer: str,
+            supposed_backups_count: str,
+            description: str,
+            files_mask: str,
+            aws_endpoint_url: str = None) -> None:
+
+        super().__init__(
+            aws_access_key_id = aws_access_key_id,
+            aws_secret_access_key = aws_secret_access_key,
+            aws_region = aws_region,
+            s3_path = s3_path,
+            customer = customer,
+            supposed_backups_count = supposed_backups_count,
+            type = "FilesBucket",
+            description = description,
+            aws_endpoint_url = aws_endpoint_url)
+
+        self.metadata.last_backup_date = None
+        self.files_mask = files_mask
+
+    def _gather_metadata(self) -> BackupMetadata:
+        '''
+            Gather information about backup from files in S3
+        '''
+        kwargs = {
+           "aws_access_key_id": self.aws_access_key_id,
+           "aws_secret_access_key": self.aws_secret_access_key,
+           "region_name": self.aws_region,
+           "endpoint_url": self.aws_endpoint_url
+        }
+        s3 = boto3.resource(
+            's3',
+            **{k:v for k,v in kwargs.items() if v is not None}
+        )
+
+        bucket_name = self.s3_path.split("/")[2]
+        s3 = s3.Bucket(bucket_name)
+
+        latest_backup = {"key": None, "last_modified": datetime(2000, 1, 1, tzinfo=pytz.UTC), "size": 0} # Default latest backup
+        count_of_backups = 0
+        # Get latest backup file
+        for object in s3.objects.all():
+            if fnmatch(object.key, self.files_mask): # Check if object name matches with files mask from config file
+                if latest_backup["last_modified"] < object.last_modified:
+                    latest_backup = {"key": object.key, "last_modified": object.last_modified, "size": object.size}
+                count_of_backups += 1
+
+        self.metadata.count_of_backups = count_of_backups
+        self.metadata.last_backup_date = latest_backup["last_modified"]
+        self.metadata.backup_name = latest_backup["key"]
+        self.metadata.placement = bucket_name
+        self.metadata.size = round(latest_backup["size"]/1024/1024, 1)
+        self.metadata.time = 0
+
         return self.metadata
