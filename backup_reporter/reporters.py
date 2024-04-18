@@ -207,3 +207,79 @@ class FilesBucketReporterBackupReporter(BackupReporter):
         self.metadata.time = 0
 
         return self.metadata
+
+class S3MariadbBackupReporter(BackupReporter):
+    '''
+        Reporter for uploaded to S3 files with backups.
+    '''
+    def __init__(
+            self,
+            aws_access_key_id: str,
+            aws_secret_access_key: str,
+            aws_region: str,
+            s3_path: str,
+            customer: str,
+            supposed_backups_count: str,
+            description: str,
+            aws_endpoint_url: str = None) -> None:
+
+        super().__init__(
+            aws_access_key_id = aws_access_key_id,
+            aws_secret_access_key = aws_secret_access_key,
+            aws_region = aws_region,
+            s3_path = s3_path,
+            customer = customer,
+            supposed_backups_count = supposed_backups_count,
+            type = "DockerMariadb",
+            description = description,
+            aws_endpoint_url = aws_endpoint_url)
+
+        self.metadata.last_backup_date = None
+
+    def _gather_metadata(self) -> BackupMetadata:
+        kwargs = {
+            "aws_access_key_id": self.aws_access_key_id,
+            "aws_secret_access_key": self.aws_secret_access_key,
+            "region_name": self.aws_region,
+            "endpoint_url": self.aws_endpoint_url
+        }
+        s3 = boto3.client(
+            's3',
+            **{k:v for k,v in kwargs.items() if v is not None}
+        )
+
+        bucket_name = self.s3_path.split("/")[2]
+        directories = []
+        count_of_backups = 0
+        backup_total_size = 0
+        response = s3.list_objects_v2(Bucket=bucket_name, Prefix='mariadb/full/', Delimiter='/')
+        if 'CommonPrefixes' in response:
+            directories = [prefix['Prefix'] for prefix in response['CommonPrefixes']]
+            latest_full_backup = directories[-1]
+            latest_date_of_backup = latest_full_backup.split('/')[-2]
+            count_of_backups = len(directories)
+            inc_path = 'mariadb/inc/' + latest_date_of_backup
+            response_from_inc_path = s3.list_objects_v2(Bucket=bucket_name, Prefix=inc_path, Delimiter='/')
+            if 'CommonPrefixes' in response_from_inc_path:
+                directories = [prefix['Prefix'] for prefix in response_from_inc_path['CommonPrefixes']]
+                latest_backup = directories[-1]
+                latest_date_of_backup = latest_backup.split('/')[-2]
+            else:
+                logging.info("No directories found in the incremental path.")
+                latest_backup = latest_full_backup
+            objects_of_backup = s3.list_objects_v2(Bucket=bucket_name, Prefix=latest_backup)
+            if 'Contents' in objects_of_backup:
+                for obj in objects_of_backup['Contents']:
+                    backup_total_size += obj['Size']
+        else:
+            logging.info("No directories found in the specified path.")
+            latest_backup = 'None'
+            count_of_backups = 0
+            backup_total_size = 0
+        self.metadata.count_of_backups = count_of_backups
+        self.metadata.last_backup_date = latest_date_of_backup
+        self.metadata.backup_name = latest_backup
+        self.metadata.placement = bucket_name
+        self.metadata.size = round(backup_total_size/1024/1024, 1)
+        self.metadata.time = 0
+        return self.metadata

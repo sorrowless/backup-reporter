@@ -1,7 +1,6 @@
 import argparse
 import sys
 import logging
-import ast
 import backup_reporter.reporters as rps
 
 from backup_reporter.collector import BackupCollector
@@ -64,8 +63,22 @@ def start():
         )
         reporter.report()
 
+    elif confs["s3_mariadb"]:
+        logging.info("Report about S3-mariadb backups")
+        reporter = rps.S3MariadbBackupReporter(
+            aws_access_key_id = confs["bucket"][0].get("aws_access_key_id", None),
+            aws_secret_access_key = confs["bucket"][0].get("aws_secret_access_key", None),
+            aws_region = confs["bucket"][0].get("aws_region", None),
+            s3_path = confs["bucket"][0].get("s3_path", None),
+            customer = confs.get("customer", None),
+            supposed_backups_count = confs.get("supposed_backups_count", None),
+            aws_endpoint_url = confs["bucket"][0].get("aws_endpoint_url", None),
+            description = confs.get("description", None),
+        )
+        reporter.report()
+
     else:
-        print("You MUST choose either reporter mode or collector mode")
+        logging.info("You MUST choose either reporter mode or collector mode")
         exit(1)
 
 if __name__ == "__main__":

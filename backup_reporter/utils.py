@@ -1,3 +1,4 @@
+import logging
 import subprocess
 
 from argparse import Namespace
@@ -13,7 +14,7 @@ def exec_cmd(args: list) -> str:
     if out.returncode != 0:
         stdout_msg = stdout.decode('utf-8') if stdout is not None else ''
         stderr_msg = stderr.decode('utf-8') if stderr is not None else ''
-        print(out.returncode)
+        logging.info(out.returncode)
         raise Exception(f"Command returned code {out.returncode}. Stdout: '{stdout_msg}' Stderr: '{stderr_msg}'")
 
     return stdout.decode("utf-8")
