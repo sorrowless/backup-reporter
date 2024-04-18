@@ -4,9 +4,12 @@ import json
 import boto3
 import gspread
 import logging
+import datetime
+from time import sleep
+from gspread_formatting import Color, CellFormat, format_cell_range
+from oauth2client.service_account import ServiceAccountCredentials
 
 from backup_reporter.dataclass import BackupMetadata
-from oauth2client.service_account import ServiceAccountCredentials
 
 
 class BackupCollector:
@@ -20,6 +23,10 @@ class BackupCollector:
         self.spreadsheet_name = spreadsheet_name
         self.worksheet_name = worksheet_name
         self.sheet_owner = sheet_owner
+
+        self.color_neutral = Color(1,1,1) # White
+        self.color_warning = Color(1,0.5,0) # Orange
+        self.color_alarm = Color(1,0,0) # Red
 
     def _collect_from_bucket(
             self,
@@ -118,17 +125,114 @@ class BackupCollector:
             body={'values': list(csv.reader(open(csv_path)))}
         )
 
+    def _color_backup_count(self, metadata: BackupMetadata) -> Color:
+        '''
+            Select color for Backup count cell
+        '''
+        if int(metadata.count_of_backups) < 3:
+            return self.color_alarm
+        return self.color_neutral
+
+    def _color_supposed_backups_count(self, metadata: BackupMetadata) -> Color:
+        '''
+            Select color for Supposed Backups Count
+        '''
+        if int(metadata.count_of_backups) <= int(metadata.supposed_backups_count) - 3:
+            return self.color_alarm
+        elif int(metadata.count_of_backups) <  int(metadata.supposed_backups_count) - 2:
+            return self.color_warning
+        return self.color_neutral
+
+    def _color_last_backup_date(self, metadata: BackupMetadata) -> Color:
+        '''
+            Select color for Last Backup Date
+        '''
+        last_backup_date = datetime.datetime.strptime(metadata.last_backup_date, '%Y-%m-%d %H:%M:%S%z')
+        time_delta = datetime.datetime.now() - last_backup_date.replace(tzinfo=None)
+        if time_delta.days > 7:
+            return self.color_alarm
+        return self.color_neutral
+
+    def _set_color_matrix(self, metadata: list) -> list:
+        '''
+            Compile color matrix by collected metadata for google worksheet
+        '''
+        result = [[self.color_neutral, self.color_neutral, self.color_neutral, self.color_neutral, self.color_neutral]] # Worksheet header always white
+        # Iterate over metadata, compile worksheet rows and colorize them
+        for data in metadata:
+            result.append([
+                self.color_neutral, # Customer
+                self.color_neutral, # DB type
+                self.color_neutral, # Backup Placement
+                self.color_neutral, # Size in MB
+                self.color_neutral, # Backup time spent
+                self.color_neutral, # Backup name
+                self._color_backup_count(data), # Backup count
+                self._color_supposed_backups_count(data), # Supposed Backups Count
+                self._color_last_backup_date(data) , # Last Backup Date
+                self.color_neutral, # Description
+            ])
+
+        return result
+    
+    def _get_column_name(self, n):
+        '''
+            Get letter from english alphabet by position number
+        '''
+        if n > 26:
+            raise Exception("Function _get_column_name accepts a number from 0 to 26")
+
+        result = ''
+        while n > 0:
+            index = (n - 1) % 26
+            result += chr(index + ord('A'))
+            n = (n - 1) // 26
+
+        return result[::-1]
+    
+    def _colorize_worksheet(self, color_matrix: list) -> None:
+        '''
+            Colorize spreadsheet with colors sets in color_matrix
+        '''
+        scope = ["https://spreadsheets.google.com/feeds", 'https://www.googleapis.com/auth/spreadsheets', "https://www.googleapis.com/auth/drive.file", "https://www.googleapis.com/auth/drive"]
+        credentials = ServiceAccountCredentials.from_json_keyfile_name(self.credentials_path, scope)
+        spreadsheet = gspread.authorize(credentials).open(self.spreadsheet_name)
+        worksheet = spreadsheet.worksheet(self.worksheet_name)
+        
+        # Drop all worksheet colors
+        format_cell_range(
+            worksheet=worksheet, 
+            name="0", # Set all cells for that operation
+            cell_format=CellFormat(backgroundColor=Color(1, 1, 1)) # Colorize cells to white 
+        )
+
+        # Iterate over color_matrix like over worksheet rows and its numbers
+        for y, row in enumerate(color_matrix):
+            sleep(5)
+            # Iterate over worksheet cells in row and its column numbers
+            for x, col in enumerate(row):
+                format_cell_range(
+                    worksheet=worksheet, 
+                    name=self._get_column_name(x+1)+str(y+1), # Compile cell name in format like "A1", "B2" etc
+                    cell_format=CellFormat(backgroundColor=col)
+                )
+
     def collect(self):
         metadata = []
         for bucket in self.buckets:
-            metadata.append(self._collect_from_bucket(
-                aws_access_key_id=bucket.get("aws_access_key_id"),
-                aws_secret_access_key=bucket.get("aws_secret_access_key"),
-                aws_region=bucket.get("aws_region"),
-                s3_path=bucket.get("s3_path"),
-                aws_endpoint_url=bucket.get("aws_endpoint_url")
-            ))
+            metadata.append(
+                self._collect_from_bucket(
+                    aws_access_key_id=bucket.get("aws_access_key_id"),
+                    aws_secret_access_key=bucket.get("aws_secret_access_key"),
+                    aws_region=bucket.get("aws_region"),
+                    s3_path=bucket.get("s3_path"),
+                    aws_endpoint_url=bucket.get("aws_endpoint_url")
+                )
+            )
 
         csv = self._compile_csv(metadata)
         self._upload_csv(csv)
         os.remove(csv)
+
+        color_matrix = self._set_color_matrix(metadata)
+        self._colorize_worksheet(color_matrix)
