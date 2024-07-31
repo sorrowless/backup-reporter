@@ -129,8 +129,14 @@ class BackupCollector:
         '''
             Select color for Backup count cell
         '''
-        if int(metadata.count_of_backups) < 3:
-            return self.color_alarm
+        try:
+            if int(metadata.count_of_backups) < 3:
+                return self.color_alarm
+        except ValueError as exc:
+            # there are cases when total count string looks like "67 total / 10 full / 57 incremental"
+            # so we need to parse it explicitly
+            if int(metadata.count_of_backups.split(" ")[0]) < 3:
+                return self.color_alarm
         return self.color_neutral
 
     def _color_supposed_backups_count(self, metadata: BackupMetadata) -> Color:
