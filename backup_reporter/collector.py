@@ -5,6 +5,7 @@ import boto3
 import gspread
 import logging
 import datetime
+import dateparser
 from time import sleep
 from gspread_formatting import Color, CellFormat, format_cell_range
 from oauth2client.service_account import ServiceAccountCredentials
@@ -125,27 +126,32 @@ class BackupCollector:
             body={'values': list(csv.reader(open(csv_path)))}
         )
 
+    def _get_backups_count(self, metadata: BackupMetadata) -> int:
+        '''
+            Return count of backups
+        '''
+        try:
+            return int(metadata.count_of_backups)
+        except ValueError as exc:
+            # there are cases when total count string looks like "67 total / 10 full / 57 incremental"
+            # so we need to parse it explicitly
+            return int(metadata.count_of_backups.split(" ")[0])
+
     def _color_backup_count(self, metadata: BackupMetadata) -> Color:
         '''
             Select color for Backup count cell
         '''
-        try:
-            if int(metadata.count_of_backups) < 3:
-                return self.color_alarm
-        except ValueError as exc:
-            # there are cases when total count string looks like "67 total / 10 full / 57 incremental"
-            # so we need to parse it explicitly
-            if int(metadata.count_of_backups.split(" ")[0]) < 3:
-                return self.color_alarm
+        if self._get_backups_count(metadata) < 3:
+            return self.color_alarm
         return self.color_neutral
 
     def _color_supposed_backups_count(self, metadata: BackupMetadata) -> Color:
         '''
             Select color for Supposed Backups Count
         '''
-        if int(metadata.count_of_backups) <= int(metadata.supposed_backups_count) - 3:
+        if self._get_backups_count(metadata) <= int(metadata.supposed_backups_count) - 3:
             return self.color_alarm
-        elif int(metadata.count_of_backups) <  int(metadata.supposed_backups_count) - 2:
+        elif self._get_backups_count(metadata) <  int(metadata.supposed_backups_count) - 2:
             return self.color_warning
         return self.color_neutral
 
@@ -153,7 +159,7 @@ class BackupCollector:
         '''
             Select color for Last Backup Date
         '''
-        last_backup_date = datetime.datetime.strptime(metadata.last_backup_date, '%Y-%m-%d %H:%M:%S%z')
+        last_backup_date = dateparser.parse(metadata.last_backup_date)
         time_delta = datetime.datetime.now() - last_backup_date.replace(tzinfo=None)
         if time_delta.days > 7:
             return self.color_alarm
