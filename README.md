@@ -17,8 +17,8 @@ Beware that standard python packages installations which are ran by mean user, w
 ### Reporter
 
 Reporter can be configured with two ways: script arguments or configuration file. Possible configuration options you can find by typing `backup-reporter -h`. To use config file just pass `--config your_config_file.yml` as script argument.
-All options from cli-help are same for config-file. As example following command: 
-- `python3 main.py --bucket="{'s3_path': 's3://bucket_name/in_bucket_path/metadata_file_name.txt', 'aws_access_key_id': 'key', 'aws_secret_access_key': 'key', 'aws_region': 'region'}" --docker_postgres` 
+All options from cli-help are same for config-file. As example following command:
+- `python3 main.py --bucket="{'s3_path': 's3://bucket_name/in_bucket_path/metadata_file_name.txt', 'aws_access_key_id': 'key', 'aws_secret_access_key': 'key', 'aws_region': 'region'}" --docker_postgres`
 
 can be written in file:
 ```
@@ -41,7 +41,7 @@ Collector can be configured the same way as reporter - with arguments passed to 
 # Sheet owner is an email of user to whom ownership will be transfered
 sheet_owner: s@example.com
 
-# Credentials file is a JSON key which should be given to some service account. 
+# Credentials file is a JSON key which should be given to some service account.
 # To understand how to create service account, try to google about a bit
 google_spreadsheet_credentials_path: ~/Development/personal/backupreporter_key.json
 
@@ -66,4 +66,6 @@ Owner transfership in case of spreadsheets is a two-step process. First, collect
 
 ## Development
 
-Install poetry first, then simply run `poetry install` in repository root - and start to develop.
+Install poetry first, then simply run `poetry install` in repository root - and
+start to develop. To run, run `poetry run`. To publish new version, change
+version in `pyproject.toml` and run `poetry build && poetry publish`.
