@@ -92,3 +92,10 @@ https://support.google.com/docs/answer/2494892?hl=en&co=GENIE.Platform%3DDesktop
 Install poetry first, then simply run `poetry install` in repository root - and
 start to develop. To run, run `poetry run`. To publish new version, change
 version in `pyproject.toml` and run `poetry build && poetry publish`.
+
+## Authors
+
+Made in cooperation with:
+
+* Dmitry Razin - https://github.com/one-mINd
+* Stan Bogatkin - https://github.com/sorrowless
