@@ -1,14 +1,15 @@
 import os
-import csv
+import openpyxl
+from openpyxl.styles import PatternFill
 import json
 import boto3
-import gspread
 import logging
 import datetime
 import dateparser
-from time import sleep
-from gspread_formatting import Color, CellFormat, format_cell_range
 from oauth2client.service_account import ServiceAccountCredentials
+from pydrive2.auth import GoogleAuth
+from pydrive2.drive import GoogleDrive
+import openpyxl.worksheet
 
 from backup_reporter.dataclass import BackupMetadata
 
@@ -25,9 +26,9 @@ class BackupCollector:
         self.worksheet_name = worksheet_name
         self.sheet_owner = sheet_owner
 
-        self.color_neutral = Color(1,1,1) # White
-        self.color_warning = Color(1,0.5,0) # Orange
-        self.color_alarm = Color(1,0,0) # Red
+        self.color_neutral = "FFFFFF" # White
+        self.color_warning = "f4ff00" # Orange
+        self.color_alarm = "FF0004" # Red
 
     def _collect_from_bucket(
             self,
@@ -71,61 +72,6 @@ class BackupCollector:
         logging.info(f"Collect metadata from {s3_path} complete")
         return result
 
-    def _csv_write(self, data: list, csv_path: str) -> None:
-        with open(csv_path, 'a') as csvfile:
-            csv_file = csv.writer(csvfile, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
-            for row in data:
-                csv_file.writerow(row)
-
-    def _compile_csv(self, metadata: list) -> str:
-        logging.info(f"Compile csv file")
-        csv_path = "tmp_report.csv"
-        self._csv_write([[ "Customer", "DB type", "Backup Placement", "Size in MB", "Backup time spent", "Backup name", "Backups count", "Supposed Backups Count", "Last Backup Date", "Description" ]], csv_path)
-
-        backups_info = []
-        for data in metadata:
-            row = [ data.customer, data.type, data.placement, data.size, data.time, data.backup_name, data.count_of_backups, data.supposed_backups_count, data.last_backup_date, data.description ]
-            backups_info.append(row)
-        
-        self._csv_write(backups_info, csv_path)
-
-        return csv_path
-
-    def _upload_csv(self, csv_path: str) -> None:
-        logging.info(f"Upload csv to google sheet")
-        scope = ["https://spreadsheets.google.com/feeds", 
-            "https://www.googleapis.com/auth/spreadsheets",
-            "https://www.googleapis.com/auth/drive.file",
-            "https://www.googleapis.com/auth/drive"]
-        credentials = ServiceAccountCredentials.from_json_keyfile_name(self.credentials_path, scope)
-        client = gspread.authorize(credentials)
-        try:
-            spreadsheet = client.open(self.spreadsheet_name)
-            logging.debug("List current permissions")
-            permissions = spreadsheet.list_permissions()
-            logging.debug(permissions)
-            for user in permissions:
-                if user.get("emailAddress", None) == self.sheet_owner and user["role"] != "owner":
-                    logging.info(f"Change owner to {self.sheet_owner}")
-                    spreadsheet.transfer_ownership(user["id"])
-                    break
-        except gspread.exceptions.SpreadsheetNotFound as e:
-            spreadsheet = client.create(self.spreadsheet_name)
-            spreadsheet.share(self.sheet_owner, perm_type='user', role='writer')
-
-        try:
-            logging.debug(f"Worksheets are: {spreadsheet.worksheets()}")
-            spreadsheet.worksheet(self.worksheet_name)
-        except gspread.exceptions.WorksheetNotFound as e:
-            spreadsheet.add_worksheet(title=self.worksheet_name, rows="100", cols="20")
-        
-        spreadsheet.values_clear(self.worksheet_name + "!A1:L10000")
-        spreadsheet.values_update(
-            self.worksheet_name,
-            params={'valueInputOption': 'USER_ENTERED'},
-            body={'values': list(csv.reader(open(csv_path)))}
-        )
-
     def _get_backups_count(self, metadata: BackupMetadata) -> int:
         '''
             Return count of backups
@@ -137,7 +83,7 @@ class BackupCollector:
             # so we need to parse it explicitly
             return int(metadata.count_of_backups.split(" ")[0])
 
-    def _color_backup_count(self, metadata: BackupMetadata) -> Color:
+    def _color_backup_count(self, metadata: BackupMetadata) -> str:
         '''
             Select color for Backup count cell
         '''
@@ -145,7 +91,7 @@ class BackupCollector:
             return self.color_alarm
         return self.color_neutral
 
-    def _color_supposed_backups_count(self, metadata: BackupMetadata) -> Color:
+    def _color_supposed_backups_count(self, metadata: BackupMetadata) -> str:
         '''
             Select color for Supposed Backups Count
         '''
@@ -155,7 +101,7 @@ class BackupCollector:
             return self.color_warning
         return self.color_neutral
 
-    def _color_last_backup_date(self, metadata: BackupMetadata) -> Color:
+    def _color_last_backup_date(self, metadata: BackupMetadata) -> str:
         '''
             Select color for Last Backup Date
         '''
@@ -165,69 +111,89 @@ class BackupCollector:
             return self.color_alarm
         return self.color_neutral
 
-    def _set_color_matrix(self, metadata: list) -> list:
+    def _set_color_row(self, metadata: list) -> list:
         '''
-            Compile color matrix by collected metadata for google worksheet
+            Compile color row by collected metadata for
         '''
-        result = [[self.color_neutral, self.color_neutral, self.color_neutral, self.color_neutral, self.color_neutral]] # Worksheet header always white
-        # Iterate over metadata, compile worksheet rows and colorize them
-        for data in metadata:
-            result.append([
-                self.color_neutral, # Customer
-                self.color_neutral, # DB type
-                self.color_neutral, # Backup Placement
-                self.color_neutral, # Size in MB
-                self.color_neutral, # Backup time spent
-                self.color_neutral, # Backup name
-                self._color_backup_count(data), # Backup count
-                self._color_supposed_backups_count(data), # Supposed Backups Count
-                self._color_last_backup_date(data) , # Last Backup Date
-                self.color_neutral, # Description
-            ])
+        return [
+            self.color_neutral, # Customer
+            self.color_neutral, # DB type
+            self.color_neutral, # Backup Placement
+            self.color_neutral, # Size in MB
+            self.color_neutral, # Backup time spent
+            self.color_neutral, # Backup name
+            self._color_backup_count(metadata), # Backup count
+            self._color_supposed_backups_count(metadata), # Supposed Backups Count
+            self._color_last_backup_date(metadata) , # Last Backup Date
+            self.color_neutral, # Description
+        ]
 
-        return result
-    
-    def _get_column_name(self, n):
-        '''
-            Get letter from english alphabet by position number
-        '''
-        if n > 26:
-            raise Exception("Function _get_column_name accepts a number from 0 to 26")
 
-        result = ''
-        while n > 0:
-            index = (n - 1) % 26
-            result += chr(index + ord('A'))
-            n = (n - 1) // 26
+    def _compile_xlsx(self, metadata: list) -> str:
+        logging.info(f"Compile xlsx file")
+        wb = openpyxl.Workbook()
+        sheet = wb.active
+        sheet.title = self.worksheet_name
+        sheet.append([
+            "Customer",
+            "DB type",
+            "Backup Placement",
+            "Size in MB",
+            "Backup time spent",
+            "Backup name",
+            "Backups count",
+            "Supposed Backups Count",
+            "Last Backup Date",
+            "Description"
+        ])
 
-        return result[::-1]
-    
-    def _colorize_worksheet(self, color_matrix: list) -> None:
-        '''
-            Colorize spreadsheet with colors sets in color_matrix
-        '''
-        scope = ["https://spreadsheets.google.com/feeds", 'https://www.googleapis.com/auth/spreadsheets', "https://www.googleapis.com/auth/drive.file", "https://www.googleapis.com/auth/drive"]
-        credentials = ServiceAccountCredentials.from_json_keyfile_name(self.credentials_path, scope)
-        spreadsheet = gspread.authorize(credentials).open(self.spreadsheet_name)
-        worksheet = spreadsheet.worksheet(self.worksheet_name)
+        for row, data_row in enumerate(metadata):
+            data_row_color = self._set_color_row(data_row)
+            data_row = [
+                data_row.customer,
+                data_row.type,
+                data_row.placement,
+                data_row.size,
+                data_row.time,
+                data_row.backup_name,
+                data_row.count_of_backups,
+                data_row.supposed_backups_count,
+                data_row.last_backup_date,
+                data_row.description
+            ]
+
+            for col, data_col in enumerate(data_row):
+                cell = sheet.cell(row=row+2, column=col+1)
+                cell.value = data_col
+                cell.fill = PatternFill(patternType='solid', fgColor=data_row_color[col])
         
-        # Drop all worksheet colors
-        format_cell_range(
-            worksheet=worksheet, 
-            name="0", # Set all cells for that operation
-            cell_format=CellFormat(backgroundColor=Color(1, 1, 1)) # Colorize cells to white 
-        )
+        wb.save(self.spreadsheet_name + ".xlsx")
+        wb.close()
 
-        # Iterate over color_matrix like over worksheet rows and its numbers
-        for y, row in enumerate(color_matrix):
-            sleep(5)
-            # Iterate over worksheet cells in row and its column numbers
-            for x, col in enumerate(row):
-                format_cell_range(
-                    worksheet=worksheet, 
-                    name=self._get_column_name(x+1)+str(y+1), # Compile cell name in format like "A1", "B2" etc
-                    cell_format=CellFormat(backgroundColor=col)
-                )
+        return self.spreadsheet_name + ".xlsx"
+
+    def _upload_xlsx(self, xlsx_path: str) -> None:
+        logging.info(f"Upload xlsx to google sheet")
+        gauth = GoogleAuth()
+        scope = ["https://spreadsheets.google.com/feeds",
+            "https://www.googleapis.com/auth/spreadsheets",
+            "https://www.googleapis.com/auth/drive.file",
+            "https://www.googleapis.com/auth/drive"
+        ]
+        gauth.credentials = ServiceAccountCredentials.from_json_keyfile_name(self.credentials_path, scope)
+        drive = GoogleDrive(gauth)
+
+        file = drive.CreateFile({'title': self.spreadsheet_name + ".xlsx"})
+        file.SetContentFile(xlsx_path)
+        file.Upload({'convert': True})
+        file.InsertPermission({
+            'type': 'anyone',
+            'value': 'anyone',
+            'role': 'reader'})
+
+        table_link = file['alternateLink']
+        logging.info(f"Xlsx file uploaded and the table is available at the link - {table_link}")
+        print(f"Xlsx file uploaded and the table is available at the link - {table_link}")
 
     def collect(self):
         metadata = []
@@ -242,9 +208,6 @@ class BackupCollector:
                 )
             )
 
-        csv = self._compile_csv(metadata)
-        self._upload_csv(csv)
-        os.remove(csv)
-
-        color_matrix = self._set_color_matrix(metadata)
-        self._colorize_worksheet(color_matrix)
+        xlsx = self._compile_xlsx(metadata)
+        self._upload_xlsx(xlsx)
+        os.remove(xlsx)
