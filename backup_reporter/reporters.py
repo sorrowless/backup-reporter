@@ -170,7 +170,10 @@ class DockerPostgresBackupReporter(BackupReporter):
         bucket_name = urlparse(self.s3_path).netloc
         self.metadata.placement = bucket_name
 
-        self.metadata.format = self.s3_path.split('.')[-1]
+        if self.upload_path:
+            self.metadata.format = self.upload_path.suffix.split('.')[-1]
+        elif self.s3_path:
+            self.metadata.format = self.s3_path.split('.')[-1]
 
         logging.info("Gather metadata success")
         logging.debug(self.metadata)
@@ -319,13 +322,13 @@ class FilesReporterBackupReporter(BackupReporter):
                     except Exception as e:
                         logging.error(f"Can not read the file!")
 
-                    mtime = datetime.fromtimestamp(stat.st_mtime, tz=pytz.UTC).replace(microsecond=0)
+                    mtime = datetime.fromtimestamp(stat.st_mtime, tz=pytz.UTC)
                     if mtime > latest_backup["last_modified"]:
                         latest_backup = {"key": filename, "last_modified": mtime, "size": stat.st_size, "sha1sum": sha1sum}
 
                     self.metadata.backups.append(BackupFileInfo(
                         size=round(stat.st_size/1024/1024, 1),
-                        backup_date=mtime,
+                        backup_date=mtime.replace(microsecond=0),
                         backup_name=filename,
                         sha1sum=sha1sum
                     ))
