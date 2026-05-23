@@ -116,9 +116,41 @@ but not to manage sharing settings or transfer ownership.
 
 ## Development
 
-Install poetry first, then simply run `poetry install` in repository root - and
-start to develop. To run, run `poetry run`. To publish new version, change
-version in `pyproject.toml` and run `poetry build && poetry publish`.
+Install dependencies for local development:
+
+```bash
+make prepare
+poetry install   # or: . .venv/bin/activate && poetry install
+```
+
+Run the tool via `poetry run backup-reporter` (or activate `.venv` first).
+
+### Releasing to PyPI
+
+Release flow (local macOS or CI on Ubuntu):
+
+```bash
+make prepare
+make build          # patch bump, commit, tag, build dist/
+make publish        # requires PYPI_API_TOKEN
+make push-release   # push commit and tags to origin
+```
+
+Requirements:
+
+- Clean git working tree (no uncommitted changes).
+- At least one new commit since the latest release tag.
+- Always run `make push-release` after a successful publish so git tags stay in sync with PyPI.
+
+Set credentials locally:
+
+```bash
+export PYPI_API_TOKEN=pypi-...
+```
+
+CI uses GitHub Actions workflow [`.github/workflows/release.yml`](.github/workflows/release.yml) (`workflow_dispatch`) with repository secret `PYPI_API_TOKEN`.
+
+If PyPI is ahead of git tags (e.g. tag was not pushed), the next `make build` creates a recovery release with the next patch version. Use `RELEASE_STRICT=1` to fail instead of auto-recovery.
 
 ## Authors
 

@@ -4,3 +4,4 @@
 *reporter_credentials.json*
 dist*
 .python-version
+.venv/
